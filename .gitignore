@@ -1,25 +1,18 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+!frontend/.env.example
 
-node_modules
-dist
-dist-ssr
-*.local
+# Backend
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.env
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Root/local
+.env
+.vercel/
+**/.vercel/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.vercel

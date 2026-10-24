@@ -1,69 +1,30 @@
-import { Flex, Grid, GridItem, Show } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import NavBar from "./components/NavBar";
-import GameGrid from "./components/GameGrid";
-import GenreList from "./components/GenreList";
-import { useState } from "react";
-import { Genre } from "./Hooks/useGenre";
-import PlatformSelector from "./components/PlatformSelector";
-import { Platform } from "./Hooks/useGames";
-import SortSelector from "./components/SortSelector";
-import GameHeading from "./components/GameHeading";
+import { useRouter } from "./lib/router";
+import DiscoverPage from "./pages/DiscoverPage";
+import GameDetailPage from "./pages/GameDetailPage";
+import ComparePage from "./pages/ComparePage";
+import LibraryPage from "./pages/LibraryPage";
+import AuthPage from "./pages/AuthPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
-export interface GameQuery {
-  genre: Genre | null;
-  platform: Platform | null;
-  sortOrder: string;
-  searchText: string;
-}
-
+/** Route matching is intentionally explicit so a reviewer can understand the app map at a glance. */
 function App() {
-  const [gameQuery, setGameQuery] = useState<GameQuery>({} as GameQuery);
+  const { pathname } = useRouter();
+  const gameMatch = pathname.match(/^\/games\/(\d+)(?:\/[^/]+)?$/);
+
+  let page = <NotFoundPage />;
+  if (pathname === "/") page = <DiscoverPage />;
+  else if (gameMatch) page = <GameDetailPage gameId={Number(gameMatch[1])} />;
+  else if (pathname === "/compare") page = <ComparePage />;
+  else if (pathname === "/library") page = <LibraryPage />;
+  else if (pathname === "/auth") page = <AuthPage />;
 
   return (
-    <Grid
-      templateAreas={{
-        base: `"nav" "main"`,
-        lg: `"nav nav" "aside main"`,
-      }}
-      templateColumns={{
-        base: "1fr",
-        lg: "200px 1fr",
-      }}
-    >
-      <GridItem area="nav">
-        <NavBar
-          onSearch={(searchText) => setGameQuery({ ...gameQuery, searchText })}
-        />
-      </GridItem>
-
-      <Show above="lg">
-        <GridItem area="aside" paddingX={5}>
-          <GenreList
-            selectedGenre={gameQuery.genre}
-            onSelectedGenre={(genre) => setGameQuery({ ...gameQuery, genre })}
-          />
-        </GridItem>
-      </Show>
-
-      <GridItem area="main">
-        <GameHeading gameQuery={gameQuery} />
-        <Flex paddingLeft={10} marginBottom={5}>
-          <PlatformSelector
-            selectedPlatform={gameQuery.platform}
-            onSelectPlatform={(platform) =>
-              setGameQuery({ ...gameQuery, platform })
-            }
-          />
-          <SortSelector
-            sortOrder={gameQuery.sortOrder}
-            onSelectSortOrder={(sortOrder) =>
-              setGameQuery({ ...gameQuery, sortOrder })
-            }
-          />
-        </Flex>
-        <GameGrid gameQuery={gameQuery} />
-      </GridItem>
-    </Grid>
+    <Box minH="100vh">
+      <NavBar />
+      {page}
+    </Box>
   );
 }
 

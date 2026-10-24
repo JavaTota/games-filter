@@ -1,15 +1,15 @@
-//to download smaller images, we take the url of the pic and insert the crop after 'media/'
-
 import noImage from "../assets/no-image-placeholder-6f3882e0.webp";
 
+/** RAWG supports image transforms in the URL; requesting a crop reduces card payload size. */
 const getCroppedImageUrl = (url: string) => {
   if (!url) return noImage;
 
-  const target = "media/";
+  const marker = "media/";
+  const markerIndex = url.indexOf(marker);
+  if (markerIndex === -1) return url;
 
-  const index = url.indexOf(target) + target.length;
-
-  return url.slice(0, index) + "crop/600/400/" + url.slice(index);
+  const insertAt = markerIndex + marker.length;
+  return `${url.slice(0, insertAt)}crop/600/400/${url.slice(insertAt)}`;
 };
 
 export default getCroppedImageUrl;

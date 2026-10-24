@@ -1,18 +1,33 @@
-import { HStack, Image } from "@chakra-ui/react";
+import { Button, HStack, Image, Spacer, Text } from "@chakra-ui/react";
 import logo from "../assets/logo.webp";
 import ColorModeSwitch from "./ColorModeSwitch";
-import SearchInput from "./SearchInput";
+import { AppLink } from "../lib/router";
+import { useCompare } from "../context/CompareContext";
+import { useAuth } from "../context/AuthContext";
 
-interface Props {
-  onSearch: (searchText: string) => void;
-}
+const NavBar = () => {
+  const { games } = useCompare();
+  const { session, signOut } = useAuth();
 
-const NavBar = ({ onSearch }: Props) => {
   return (
-    /* hstack to show the items inline */
-    <HStack padding={"10px"}>
-      <Image src={logo} boxSize="60px" />
-      <SearchInput onSearch={onSearch} />
+    <HStack as="nav" padding={{ base: 3, md: 4 }} gap={{ base: 2, md: 4 }} position="sticky" top="0" zIndex="20" bg="gray.800" borderBottomWidth="1px" borderColor="whiteAlpha.200">
+      <AppLink to="/" ariaLabel="GameFilter home">
+        <HStack>
+          <Image src={logo} boxSize={{ base: "42px", md: "52px" }} alt="GameFilter logo" />
+          <Text fontWeight="800" display={{ base: "none", sm: "block" }}>GameFilter</Text>
+        </HStack>
+      </AppLink>
+      <HStack gap={1}>
+        <Button as="span" size="sm" variant="ghost"><AppLink to="/">Discover</AppLink></Button>
+        <Button as="span" size="sm" variant="ghost"><AppLink to="/compare">Compare ({games.length})</AppLink></Button>
+        <Button as="span" size="sm" variant="ghost"><AppLink to="/library">My Library</AppLink></Button>
+      </HStack>
+      <Spacer />
+      {session ? (
+        <Button size="sm" variant="outline" onClick={() => void signOut()}>Sign out</Button>
+      ) : (
+        <Button as="span" size="sm" colorScheme="green"><AppLink to="/auth">Sign in</AppLink></Button>
+      )}
       <ColorModeSwitch />
     </HStack>
   );
