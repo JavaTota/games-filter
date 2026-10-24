@@ -2,7 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 LibraryStatus = Literal["want_to_play", "playing", "completed", "dropped"]
 
 
