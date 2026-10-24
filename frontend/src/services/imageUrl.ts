@@ -1,15 +1,18 @@
-import noImage from "../assets/no-image-placeholder-6f3882e0.webp";
+const CROPPED_WIDTH = 600;
+const CROPPED_HEIGHT = 400;
 
-/** RAWG supports image transforms in the URL; requesting a crop reduces card payload size. */
-const getCroppedImageUrl = (url: string) => {
-  if (!url) return noImage;
+export default function getCroppedImageUrl(url: string) {
+  if (!url) return "/gamefilter-logo.webp";
 
   const marker = "media/";
   const markerIndex = url.indexOf(marker);
-  if (markerIndex === -1) return url;
 
-  const insertAt = markerIndex + marker.length;
-  return `${url.slice(0, insertAt)}crop/600/400/${url.slice(insertAt)}`;
-};
+  if (markerIndex === -1) {
+    return url;
+  }
 
-export default getCroppedImageUrl;
+  const firstHalf = url.slice(0, markerIndex + marker.length);
+  const secondHalf = url.slice(markerIndex + marker.length);
+
+  return `${firstHalf}crop/${CROPPED_WIDTH}/${CROPPED_HEIGHT}/${secondHalf}`;
+}

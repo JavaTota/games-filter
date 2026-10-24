@@ -1,4 +1,3 @@
-/** Shared RAWG shapes keep API code and UI components consistent. */
 export interface Platform {
   id: number;
   name: string;

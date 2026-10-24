@@ -1,28 +1,39 @@
 import { Box } from "@chakra-ui/react";
+
 import NavBar from "./components/NavBar";
 import { useRouter } from "./lib/router";
+import AuthPage from "./pages/AuthPage";
+import ComparePage from "./pages/ComparePage";
 import DiscoverPage from "./pages/DiscoverPage";
 import GameDetailPage from "./pages/GameDetailPage";
-import ComparePage from "./pages/ComparePage";
 import LibraryPage from "./pages/LibraryPage";
-import AuthPage from "./pages/AuthPage";
-import ProfilePage from "./pages/ProfilePage";
 import NotFoundPage from "./pages/NotFoundPage";
+import ProfilePage from "./pages/ProfilePage";
 
-/** Explicit route matching keeps the small SPA map understandable without a router dependency. */
 function App() {
   const { pathname } = useRouter();
-  const gameMatch = pathname.match(/^\/games\/(\d+)(?:\/[^/]+)?$/);
+  const gameRoute = pathname.match(/^\/games\/(\d+)(?:\/[^/]+)?$/);
 
-  let page = <NotFoundPage />;
-  if (pathname === "/") page = <DiscoverPage />;
-  else if (gameMatch) page = <GameDetailPage gameId={Number(gameMatch[1])} />;
-  else if (pathname === "/compare") page = <ComparePage />;
-  else if (pathname === "/library") page = <LibraryPage />;
-  else if (pathname === "/profile") page = <ProfilePage />;
-  else if (pathname === "/auth") page = <AuthPage />;
+  const renderPage = () => {
+    if (pathname === "/") return <DiscoverPage />;
+    if (pathname === "/compare") return <ComparePage />;
+    if (pathname === "/library") return <LibraryPage />;
+    if (pathname === "/profile") return <ProfilePage />;
+    if (pathname === "/auth") return <AuthPage />;
 
-  return <Box minH="100vh"><NavBar />{page}</Box>;
+    if (gameRoute) {
+      return <GameDetailPage gameId={Number(gameRoute[1])} />;
+    }
+
+    return <NotFoundPage />;
+  };
+
+  return (
+    <Box minH="100vh">
+      <NavBar />
+      {renderPage()}
+    </Box>
+  );
 }
 
 export default App;

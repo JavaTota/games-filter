@@ -7,8 +7,6 @@ router = APIRouter(tags=["games"])
 
 @router.get("/rawg")
 async def rawg_proxy(request: Request, path: str) -> object:
-    """Proxy only approved RAWG reads so the API key never reaches the browser."""
-
     try:
         return await rawg_service.get(path, dict(request.query_params))
     except ValueError as error:

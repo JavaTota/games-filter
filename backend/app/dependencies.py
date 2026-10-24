@@ -4,7 +4,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.models import AuthUser
 from app.services.supabase import supabase
 
-
 bearer = HTTPBearer(auto_error=False)
 
 
@@ -13,12 +12,11 @@ async def current_token(
 ) -> str:
     if not credentials:
         raise HTTPException(status_code=401, detail="Sign in to continue.")
+
     return credentials.credentials
 
 
 async def current_user(token: str = Depends(current_token)) -> AuthUser:
-    """Verify the Supabase JWT before any user-owned database operation."""
-
     try:
         return await supabase.get_user(token)
     except PermissionError as error:
@@ -28,4 +26,7 @@ async def current_user(token: str = Depends(current_token)) -> AuthUser:
 async def optional_token(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> str | None:
-    return credentials.credentials if credentials else None
+    if not credentials:
+        return None
+
+    return credentials.credentials

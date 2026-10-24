@@ -23,18 +23,25 @@ import { useCachedQuery } from "../lib/queryCache";
 import { AppLink } from "../lib/router";
 import { getGame, getGames, getScreenshots } from "../services/rawgService";
 
-export default function GameDetailPage({ gameId }: { gameId: number }) {
+interface Props {
+  gameId: number;
+}
+
+export default function GameDetailPage({ gameId }: Props) {
+  const toast = useToast();
+  const { games: comparedGames, toggle } = useCompare();
+
   const gameQuery = useCachedQuery(`game:${gameId}`, () => getGame(gameId), {
     ttlMs: 10 * 60_000,
   });
-  const screenshots = useCachedQuery(
+  const screenshotsQuery = useCachedQuery(
     `screenshots:${gameId}`,
     () => getScreenshots(gameId),
     { ttlMs: 10 * 60_000 },
   );
 
   const firstGenre = gameQuery.data?.genres?.[0]?.slug ?? "";
-  const similar = useCachedQuery(
+  const similarQuery = useCachedQuery(
     `similar:${gameId}:${firstGenre}`,
     () =>
       getGames({
@@ -42,11 +49,11 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
         ordering: "-rating",
         page_size: 7,
       }),
-    { enabled: Boolean(firstGenre), ttlMs: 10 * 60_000 },
+    {
+      enabled: Boolean(firstGenre),
+      ttlMs: 10 * 60_000,
+    },
   );
-
-  const { games, toggle } = useCompare();
-  const toast = useToast();
 
   if (gameQuery.isLoading) {
     return (
@@ -72,7 +79,27 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
   }
 
   const game = gameQuery.data;
-  const selected = games.some((item) => item.id === game.id);
+  const isSelected = comparedGames.some((item) => item.id === game.id);
+  const platformNames =
+    game.parent_platforms?.map(({ platform }) => platform.name).join(", ") ||
+    "N/A";
+  const developerNames =
+    game.developers?.map((developer) => developer.name).join(", ") || "N/A";
+  const publisherNames =
+    game.publishers?.map((publisher) => publisher.name).join(", ") || "N/A";
+
+  const handleCompare = () => {
+    const message = toggle(game);
+    if (message) {
+      toast({ title: message, status: "warning" });
+    }
+  };
+
+  const screenshots = screenshotsQuery.data?.results.slice(0, 6) ?? [];
+  const similarGames =
+    similarQuery.data?.results
+      .filter((item) => item.id !== game.id)
+      .slice(0, 6) ?? [];
 
   return (
     <Container maxW="1200px" py={8}>
@@ -123,67 +150,19 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
               </Text>
 
               <Stack gap={2}>
-                <MetadataLine
-                  label="Platforms"
-                  value={
-                    game.parent_platforms
-                      ?.map((item) => item.platform.name)
-                      .join(", ") || "N/A"
-                  }
-                />
-                <MetadataLine
-                  label="Developers"
-                  value={
-                    game.developers?.map((item) => item.name).join(", ") ||
-                    "N/A"
-                  }
-                />
-                <MetadataLine
-                  label="Publishers"
-                  value={
-                    game.publishers?.map((item) => item.name).join(", ") ||
-                    "N/A"
-                  }
-                />
+                <MetadataLine label="Platforms" value={platformNames} />
+                <MetadataLine label="Developers" value={developerNames} />
+                <MetadataLine label="Publishers" value={publisherNames} />
               </Stack>
 
               {game.stores?.length ? (
-                <HStack flexWrap="wrap">
-                  <Text fontWeight="700" fontSize="sm">
-                    Stores:
-                  </Text>
-                  {game.stores.map((item) =>
-                    item.store.domain ? (
-                      <ChakraLink
-                        key={item.store.id}
-                        href={`https://${item.store.domain}`}
-                        isExternal
-                        color="green.300"
-                        fontSize="sm"
-                      >
-                        {item.store.name} ↗
-                      </ChakraLink>
-                    ) : (
-                      <Text key={item.store.id} fontSize="sm">
-                        {item.store.name}
-                      </Text>
-                    ),
-                  )}
-                </HStack>
+                <StoreLinks stores={game.stores} />
               ) : null}
 
               <LibraryControls game={game} />
 
-              <Button
-                variant={selected ? "solid" : "outline"}
-                onClick={() => {
-                  const message = toggle(game);
-                  if (message) {
-                    toast({ title: message, status: "warning" });
-                  }
-                }}
-              >
-                {selected
+              <Button variant={isSelected ? "solid" : "outline"} onClick={handleCompare}>
+                {isSelected
                   ? "Remove from comparison"
                   : "Add to comparison"}
               </Button>
@@ -197,16 +176,16 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
           </GridItem>
         </Grid>
 
-        {(screenshots.data?.results.length ?? 0) > 0 && (
+        {screenshots.length > 0 && (
           <Box>
             <Heading size="lg" mb={4}>
               Screenshots
             </Heading>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {screenshots.data?.results.slice(0, 6).map((shot) => (
+              {screenshots.map((screenshot) => (
                 <Image
-                  key={shot.id}
-                  src={shot.image}
+                  key={screenshot.id}
+                  src={screenshot.image}
                   alt={`${game.name} screenshot`}
                   borderRadius="xl"
                   aspectRatio={16 / 9}
@@ -218,41 +197,42 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
           </Box>
         )}
 
-        {similar.data?.results.length ? (
+        {similarGames.length > 0 && (
           <Box>
             <Heading size="lg" mb={4}>
               You may also like
             </Heading>
             <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
-              {similar.data.results
-                .filter((item) => item.id !== game.id)
-                .slice(0, 6)
-                .map((item) => (
-                  <Box
-                    key={item.id}
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    overflow="hidden"
-                  >
-                    <Image
-                      src={item.background_image ?? "/gamefilter-logo.webp"}
-                      alt={item.name}
-                      aspectRatio={16 / 9}
-                      objectFit="cover"
-                      loading="lazy"
-                    />
-                    <Box p={3}>
-                      <Text fontWeight="700" fontSize="sm">
-                        <AppLink to={`/games/${item.id}/${item.slug}`}>
-                          {item.name}
-                        </AppLink>
-                      </Text>
-                    </Box>
+              {similarGames.map((similarGame) => (
+                <Box
+                  key={similarGame.id}
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  overflow="hidden"
+                >
+                  <Image
+                    src={
+                      similarGame.background_image ?? "/gamefilter-logo.webp"
+                    }
+                    alt={similarGame.name}
+                    aspectRatio={16 / 9}
+                    objectFit="cover"
+                    loading="lazy"
+                  />
+                  <Box p={3}>
+                    <Text fontWeight="700" fontSize="sm">
+                      <AppLink
+                        to={`/games/${similarGame.id}/${similarGame.slug}`}
+                      >
+                        {similarGame.name}
+                      </AppLink>
+                    </Text>
                   </Box>
-                ))}
+                </Box>
+              ))}
             </SimpleGrid>
           </Box>
-        ) : null}
+        )}
 
         <Box>
           <Heading size="lg" mb={5}>
@@ -265,7 +245,12 @@ export default function GameDetailPage({ gameId }: { gameId: number }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+interface StatProps {
+  label: string;
+  value: string | number;
+}
+
+function Stat({ label, value }: StatProps) {
   return (
     <Box borderWidth="1px" borderRadius="lg" p={4}>
       <Text
@@ -288,5 +273,40 @@ function MetadataLine({ label, value }: { label: string; value: string }) {
     <Text fontSize="sm">
       <strong>{label}:</strong> {value}
     </Text>
+  );
+}
+
+interface Store {
+  store: {
+    id: number;
+    name: string;
+    domain?: string;
+  };
+}
+
+function StoreLinks({ stores }: { stores: Store[] }) {
+  return (
+    <HStack flexWrap="wrap">
+      <Text fontWeight="700" fontSize="sm">
+        Stores:
+      </Text>
+      {stores.map(({ store }) =>
+        store.domain ? (
+          <ChakraLink
+            key={store.id}
+            href={`https://${store.domain}`}
+            isExternal
+            color="green.300"
+            fontSize="sm"
+          >
+            {store.name} ↗
+          </ChakraLink>
+        ) : (
+          <Text key={store.id} fontSize="sm">
+            {store.name}
+          </Text>
+        ),
+      )}
+    </HStack>
   );
 }

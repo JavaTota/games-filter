@@ -27,9 +27,9 @@ import SearchAutocomplete from "../components/SearchAutocomplete";
 import { useCachedQuery } from "../lib/queryCache";
 import { useRouter } from "../lib/router";
 import { getGames, getGenres, getPlatforms } from "../services/rawgService";
-import type { DiscoverFilters } from "../types/game";
+import type { DiscoverFilters, Game } from "../types/game";
 
-const defaults: DiscoverFilters = {
+const DEFAULT_FILTERS: DiscoverFilters = {
   search: "",
   genre: "",
   platform: "",
@@ -42,7 +42,6 @@ const defaults: DiscoverFilters = {
   page: 1,
 };
 
-/** URL state makes searches bookmarkable, shareable, and browser-navigation friendly. */
 function readFilters(search: string): DiscoverFilters {
   const params = new URLSearchParams(search);
 
@@ -50,7 +49,7 @@ function readFilters(search: string): DiscoverFilters {
     search: params.get("q") ?? "",
     genre: params.get("genre") ?? "",
     platform: params.get("platform") ?? "",
-    ordering: params.get("sort") ?? "-rating",
+    ordering: params.get("sort") ?? DEFAULT_FILTERS.ordering,
     yearFrom: params.get("from") ?? "",
     yearTo: params.get("to") ?? "",
     minRating: Number(params.get("rating") ?? 0),
@@ -60,13 +59,15 @@ function readFilters(search: string): DiscoverFilters {
   };
 }
 
-function toUrl(filters: DiscoverFilters) {
+function buildDiscoverUrl(filters: DiscoverFilters) {
   const params = new URLSearchParams();
 
   if (filters.search) params.set("q", filters.search);
   if (filters.genre) params.set("genre", filters.genre);
   if (filters.platform) params.set("platform", filters.platform);
-  if (filters.ordering !== defaults.ordering) params.set("sort", filters.ordering);
+  if (filters.ordering !== DEFAULT_FILTERS.ordering) {
+    params.set("sort", filters.ordering);
+  }
   if (filters.yearFrom) params.set("from", filters.yearFrom);
   if (filters.yearTo) params.set("to", filters.yearTo);
   if (filters.minRating) params.set("rating", String(filters.minRating));
@@ -78,36 +79,50 @@ function toUrl(filters: DiscoverFilters) {
   return query ? `/?${query}` : "/";
 }
 
+function getDateRange(filters: DiscoverFilters) {
+  if (!filters.yearFrom && !filters.yearTo) return undefined;
+
+  const firstYear = filters.yearFrom || "1980";
+  const lastYear = filters.yearTo || String(new Date().getFullYear());
+  return `${firstYear}-01-01,${lastYear}-12-31`;
+}
+
+function passesClientFilters(game: Game, filters: DiscoverFilters) {
+  if (game.rating < filters.minRating) return false;
+
+  if (
+    filters.maxPlaytime &&
+    game.playtime &&
+    game.playtime > filters.maxPlaytime
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export default function DiscoverPage() {
   const router = useRouter();
+  const mobileFilters = useDisclosure();
   const filters = useMemo(() => readFilters(router.search), [router.search]);
   const [searchText, setSearchText] = useState(filters.search);
-  const mobileFilters = useDisclosure();
 
-  const genres = useCachedQuery("genres", getGenres, {
+  const genresQuery = useCachedQuery("genres", getGenres, {
     ttlMs: 60 * 60_000,
   });
-  const platforms = useCachedQuery("platforms", getPlatforms, {
+  const platformsQuery = useCachedQuery("platforms", getPlatforms, {
     ttlMs: 60 * 60_000,
   });
 
-  const dates =
-    filters.yearFrom || filters.yearTo
-      ? `${filters.yearFrom || "1980"}-01-01,${
-          filters.yearTo || new Date().getFullYear()
-        }-12-31`
-      : undefined;
-
-  const queryKey = `games:${router.search || "default"}`;
-  const games = useCachedQuery(
-    queryKey,
+  const gamesQuery = useCachedQuery(
+    `games:${router.search || "default"}`,
     () =>
       getGames({
         search: filters.search || undefined,
         genres: filters.genre || undefined,
         platforms: filters.platform || undefined,
         ordering: filters.ordering,
-        dates,
+        dates: getDateRange(filters),
         metacritic: filters.minCritic
           ? `${filters.minCritic},100`
           : undefined,
@@ -117,22 +132,27 @@ export default function DiscoverPage() {
     { ttlMs: 2 * 60_000 },
   );
 
-  // RAWG does not expose every filter server-side, so small result refinements stay client-side.
-  const visibleGames = (games.data?.results ?? []).filter(
-    (game) =>
-      game.rating >= filters.minRating &&
-      (!filters.maxPlaytime ||
-        !game.playtime ||
-        game.playtime <= filters.maxPlaytime),
+  // RAWG handles most filters. Rating and playtime are trimmed here afterward.
+  const visibleGames = (gamesQuery.data?.results ?? []).filter((game) =>
+    passesClientFilters(game, filters),
   );
 
-  const patchFilters = (change: Partial<DiscoverFilters>) => {
-    router.navigate(toUrl({ ...filters, ...change }));
+  const updateFilters = (changes: Partial<DiscoverFilters>) => {
+    router.navigate(buildDiscoverUrl({ ...filters, ...changes }));
   };
 
   const resetFilters = () => {
     setSearchText("");
     router.navigate("/");
+  };
+
+  const submitSearch = () => {
+    updateFilters({ search: searchText.trim(), page: 1 });
+  };
+
+  const closeMobileFilters = (action: () => void) => {
+    action();
+    mobileFilters.onClose();
   };
 
   return (
@@ -149,9 +169,7 @@ export default function DiscoverPage() {
         <SearchAutocomplete
           value={searchText}
           onChange={setSearchText}
-          onSubmit={() =>
-            patchFilters({ search: searchText.trim(), page: 1 })
-          }
+          onSubmit={submitSearch}
         />
 
         <Hide above="lg">
@@ -171,83 +189,64 @@ export default function DiscoverPage() {
             <DrawerBody>
               <FilterPanel
                 filters={filters}
-                genres={genres.data?.results ?? []}
-                platforms={platforms.data?.results ?? []}
-                onChange={(change) => {
-                  patchFilters(change);
-                  mobileFilters.onClose();
-                }}
-                onReset={() => {
-                  resetFilters();
-                  mobileFilters.onClose();
-                }}
+                genres={genresQuery.data?.results ?? []}
+                platforms={platformsQuery.data?.results ?? []}
+                onChange={(changes) =>
+                  closeMobileFilters(() => updateFilters(changes))
+                }
+                onReset={() => closeMobileFilters(resetFilters)}
               />
             </DrawerBody>
           </DrawerContent>
         </Drawer>
 
-        <Grid
-          templateColumns={{ base: "1fr", lg: "260px minmax(0, 1fr)" }}
-          gap={8}
-        >
+        <Grid templateColumns={{ base: "1fr", lg: "280px 1fr" }} gap={8}>
           <Show above="lg">
             <GridItem>
               <Box
+                position="sticky"
+                top="96px"
                 borderWidth="1px"
                 borderRadius="xl"
                 p={5}
-                position="sticky"
-                top="92px"
               >
                 <FilterPanel
                   filters={filters}
-                  genres={genres.data?.results ?? []}
-                  platforms={platforms.data?.results ?? []}
-                  onChange={patchFilters}
+                  genres={genresQuery.data?.results ?? []}
+                  platforms={platformsQuery.data?.results ?? []}
+                  onChange={updateFilters}
                   onReset={resetFilters}
                 />
               </Box>
             </GridItem>
           </Show>
 
-          <GridItem>
-            <HStack justify="space-between" mb={4}>
-              <Text fontWeight="700">
-                {games.data?.count
-                  ? `${games.data.count.toLocaleString()} matching games`
-                  : "Game results"}
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Page {filters.page}
-              </Text>
-            </HStack>
-
-            {games.error && (
-              <HStack>
-                <Text color="red.300">{games.error.message}</Text>
-                <Button size="sm" onClick={games.refetch}>
-                  Retry
+          <GridItem minW={0}>
+            {gamesQuery.error && (
+              <Box py={8}>
+                <Heading size="md">Could not load games</Heading>
+                <Text color="red.300" mt={2}>
+                  {gamesQuery.error.message}
+                </Text>
+                <Button mt={4} onClick={gamesQuery.refetch}>
+                  Try again
                 </Button>
-              </HStack>
+              </Box>
             )}
 
-            <SimpleGrid columns={{ base: 1, sm: 2, xl: 3 }} spacing={6}>
-              {games.isLoading &&
+            <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6}>
+              {gamesQuery.isLoading &&
                 Array.from({ length: 9 }, (_, index) => (
-                  <Skeleton
-                    key={index}
-                    height="360px"
-                    borderRadius="xl"
-                  />
+                  <Skeleton key={index} height="360px" borderRadius="xl" />
                 ))}
 
-              {!games.isLoading &&
+              {!gamesQuery.isLoading &&
                 visibleGames.map((game) => (
                   <GameCard key={game.id} game={game} filters={filters} />
                 ))}
             </SimpleGrid>
 
-            {!games.isLoading && visibleGames.length === 0 && (
+            {!gamesQuery.isLoading && visibleGames.length === 0 && (
               <Box py={14} textAlign="center">
                 <Heading size="md">No games match these filters</Heading>
                 <Text color="gray.400" mt={2}>
@@ -260,13 +259,13 @@ export default function DiscoverPage() {
             <HStack justify="center" mt={8}>
               <Button
                 isDisabled={filters.page <= 1}
-                onClick={() => patchFilters({ page: filters.page - 1 })}
+                onClick={() => updateFilters({ page: filters.page - 1 })}
               >
                 Previous
               </Button>
               <Button
-                isDisabled={!games.data?.next}
-                onClick={() => patchFilters({ page: filters.page + 1 })}
+                isDisabled={!gamesQuery.data?.next}
+                onClick={() => updateFilters({ page: filters.page + 1 })}
               >
                 Next
               </Button>

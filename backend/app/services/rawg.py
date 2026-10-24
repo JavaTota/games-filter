@@ -16,46 +16,80 @@ class CacheEntry:
 
 
 class RawgService:
-    """Server-side RAWG client with a small TTL cache and a strict path allow-list."""
-
     BASE_URL = "https://api.rawg.io/api"
     ALLOWED_PREFIXES = ("/games", "/genres", "/platforms")
+    CACHE_TTL_SECONDS = 60
 
     def __init__(self) -> None:
         self._cache: dict[str, CacheEntry] = {}
         self._lock = asyncio.Lock()
 
-    def _validate_path(self, path: str) -> None:
-        if not path.startswith(self.ALLOWED_PREFIXES) or ".." in path or "://" in path:
+    def validate_path(self, path: str) -> None:
+        is_allowed = path.startswith(self.ALLOWED_PREFIXES)
+        looks_unsafe = ".." in path or "://" in path
+
+        if not is_allowed or looks_unsafe:
             raise ValueError("RAWG path is not allowed.")
 
     async def get(self, path: str, params: dict[str, str]) -> object:
-        self._validate_path(path)
+        self.validate_path(path)
+
         api_key = get_settings().rawg_api_key
         if not api_key:
             raise RuntimeError("RAWG_API_KEY is not configured.")
 
-        clean_params = {key: value for key, value in params.items() if key != "path"}
-        cache_key = f"{path}?{sorted(clean_params.items())}"
-        cached = self._cache.get(cache_key)
-        if cached and cached.expires_at > time.monotonic():
-            return cached.payload
+        clean_params = {
+            key: value
+            for key, value in params.items()
+            if key != "path"
+        }
+        cache_key = self.make_cache_key(path, clean_params)
+
+        cached = self.get_cached(cache_key)
+        if cached is not None:
+            return cached
 
         async with self._lock:
-            cached = self._cache.get(cache_key)
-            if cached and cached.expires_at > time.monotonic():
-                return cached.payload
+            cached = self.get_cached(cache_key)
+            if cached is not None:
+                return cached
 
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.get(
-                    f"{self.BASE_URL}{path}",
-                    params={**clean_params, "key": api_key},
-                )
-            if response.status_code >= 400:
-                raise RuntimeError(f"RAWG returned {response.status_code}: {response.text[:300]}")
-            payload = response.json()
-            self._cache[cache_key] = CacheEntry(time.monotonic() + 60, payload)
+            payload = await self.fetch(path, clean_params, api_key)
+            self._cache[cache_key] = CacheEntry(
+                expires_at=time.monotonic() + self.CACHE_TTL_SECONDS,
+                payload=payload,
+            )
             return payload
+
+    def get_cached(self, key: str) -> object | None:
+        cached = self._cache.get(key)
+        if not cached or cached.expires_at <= time.monotonic():
+            return None
+        return cached.payload
+
+    @staticmethod
+    def make_cache_key(path: str, params: dict[str, str]) -> str:
+        return f"{path}?{sorted(params.items())}"
+
+    async def fetch(
+        self,
+        path: str,
+        params: dict[str, str],
+        api_key: str,
+    ) -> object:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(
+                f"{self.BASE_URL}{path}",
+                params={**params, "key": api_key},
+            )
+
+        if response.status_code >= 400:
+            details = response.text[:300]
+            raise RuntimeError(
+                f"RAWG returned {response.status_code}: {details}"
+            )
+
+        return response.json()
 
 
 rawg_service = RawgService()

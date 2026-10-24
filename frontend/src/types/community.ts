@@ -1,4 +1,3 @@
-/** API-facing community models stay independent from RAWG response shapes. */
 export type LibraryStatus = "want_to_play" | "playing" | "completed" | "dropped";
 
 export interface LibraryEntry {
