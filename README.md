@@ -4,7 +4,7 @@ GameFilter is a full-stack game discovery and community-review application. The 
 
 ## Architecture
 
-```text
+```
 Browser
   │
   ├── React + TypeScript + Chakra UI       frontend/
@@ -36,12 +36,12 @@ The backend intentionally forwards the signed-in user's JWT to Supabase instead 
 
 `supabase/schema.sql` creates the complete database layer:
 
-| Table | Purpose | Important constraint |
-| --- | --- | --- |
-| `profiles` | Public name, avatar, bio | One row per Supabase Auth user |
-| `library_entries` | Favorites/backlog/status | Unique `(user_id, game_id)` |
-| `reviews` | GameMeter written reviews | **Unique `(user_id, game_id)`** |
-| `review_helpful_votes` | Helpful votes on reviews | Unique `(review_id, user_id)` |
+| Table                  | Purpose                   | Important constraint            |
+| ---------------------- | ------------------------- | ------------------------------- |
+| `profiles`             | Public name, avatar, bio  | One row per Supabase Auth user  |
+| `library_entries`      | Favorites/backlog/status  | Unique `(user_id, game_id)`     |
+| `reviews`              | GameMeter written reviews | **Unique `(user_id, game_id)`** |
+| `review_helpful_votes` | Helpful votes on reviews  | Unique `(review_id, user_id)`   |
 
 Two read models are also created:
 
