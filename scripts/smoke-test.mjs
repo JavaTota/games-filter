@@ -1,4 +1,5 @@
 /** Small deployment smoke test: verify the SPA and RAWG proxy both answer successfully. */
+
 const baseUrl = process.argv[2]?.replace(/\/$/, "");
 
 if (!baseUrl) {
