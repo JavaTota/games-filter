@@ -12,19 +12,22 @@ export async function apiRequest<T>(
   init: RequestInit = {},
   requireAuth = false,
 ): Promise<T> {
-  const session = await getSession();
+  const headers = new Headers(init.headers);
+
+  // Only fetch a session when this endpoint actually requires authentication.
+  const session = requireAuth ? await getSession() : null;
 
   if (requireAuth && !session) {
     throw new Error("Please sign in to continue.");
   }
 
-  const headers = new Headers(init.headers);
-
-  if (!(init.body instanceof FormData)) {
+  // JSON content type is only needed when we are actually sending a body.
+  if (init.body && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (session) {
+  // Public RAWG requests do not need the user's Supabase token.
+  if (requireAuth && session) {
     headers.set("Authorization", `Bearer ${session.access_token}`);
   }
 
@@ -35,8 +38,12 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorBody;
+
     const message =
-      body.detail ?? body.message ?? `Request failed (${response.status}).`;
+      body.detail ??
+      body.message ??
+      `Request failed (${response.status}).`;
+
     throw new Error(message);
   }
 
