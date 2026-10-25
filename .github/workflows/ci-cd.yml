@@ -2,9 +2,13 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
@@ -16,56 +20,103 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ============================================================
+  # FRONTEND QUALITY
+  # ============================================================
+
   frontend-quality:
     name: Frontend quality
     runs-on: ubuntu-24.04
+
     defaults:
       run:
         working-directory: frontend
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run test
-      - run: npm run lint
-      - run: npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+  # ============================================================
+  # BACKEND QUALITY
+  # ============================================================
 
   backend-quality:
     name: Backend quality
     runs-on: ubuntu-24.04
+
     defaults:
       run:
         working-directory: backend
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: backend/requirements-dev.txt
-      - run: pip install -r requirements-dev.txt
-      - run: ruff check app tests
-      - run: pytest
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run Ruff
+        run: ruff check app tests
+
+      - name: Run tests
+        run: pytest
+
+  # ============================================================
+  # DOCKER BUILD TEST
+  # ============================================================
 
   docker-build:
     name: Docker build
-    needs: [frontend-quality, backend-quality]
+    needs:
+      - frontend-quality
+      - backend-quality
+
     runs-on: ubuntu-24.04
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v3
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           push: false
           tags: gamefilter-backend:ci
+
+      # Placeholder public values are enough here because this job
+      # only proves that the frontend Docker image can compile.
       - name: Build frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           push: false
@@ -75,84 +126,288 @@ jobs:
             VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder
             VITE_API_BASE_URL=
 
+  # ============================================================
+  # PUBLISH DOCKER IMAGES
+  # ============================================================
+
   publish-images:
     name: Publish Docker images
-    needs: [docker-build]
+    needs:
+      - docker-build
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-24.04
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/login-action@v3
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push versioned images
         shell: bash
         run: |
           OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+
           BACKEND="ghcr.io/$OWNER/gamefilter-backend"
           FRONTEND="ghcr.io/$OWNER/gamefilter-frontend"
-          docker build -t "$BACKEND:${GITHUB_SHA}" -t "$BACKEND:latest" backend
+
+          echo "Building backend image..."
+
           docker build \
-            --build-arg VITE_SUPABASE_URL=https://example.supabase.co \
-            --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder \
-            --build-arg VITE_API_BASE_URL= \
-            -t "$FRONTEND:${GITHUB_SHA}" -t "$FRONTEND:latest" frontend
+            -t "$BACKEND:${GITHUB_SHA}" \
+            -t "$BACKEND:latest" \
+            backend
+
+          echo "Building frontend image..."
+
+          docker build \
+            --build-arg VITE_SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}" \
+            --build-arg VITE_SUPABASE_PUBLISHABLE_KEY="${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" \
+            --build-arg VITE_API_BASE_URL="${{ secrets.VITE_API_BASE_URL }}" \
+            -t "$FRONTEND:${GITHUB_SHA}" \
+            -t "$FRONTEND:latest" \
+            frontend
+
+          echo "Publishing backend images..."
+
           docker push "$BACKEND:${GITHUB_SHA}"
           docker push "$BACKEND:latest"
+
+          echo "Publishing frontend images..."
+
           docker push "$FRONTEND:${GITHUB_SHA}"
           docker push "$FRONTEND:latest"
 
+  # ============================================================
+  # PRODUCTION DEPLOYMENT
+  # ============================================================
+
   deploy-production:
     name: Deploy production
-    needs: [publish-images]
+    needs:
+      - publish-images
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-24.04
+
     environment: production
+
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
         with:
           node-version: 24
+
+      # ----------------------------------------------------------
+      # Validate GitHub deployment configuration
+      # ----------------------------------------------------------
+
       - name: Verify deployment secrets
         shell: bash
-        run: |
-          for name in VERCEL_TOKEN VERCEL_ORG_ID; do
-            test -n "${!name}" || { echo "::error::Missing $name"; exit 1; }
-          done
-          test -n "${{ secrets.VERCEL_BACKEND_PROJECT_ID }}" || { echo "::error::Missing VERCEL_BACKEND_PROJECT_ID"; exit 1; }
-          test -n "${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}" || { echo "::error::Missing VERCEL_FRONTEND_PROJECT_ID"; exit 1; }
-          test -n "${{ secrets.VITE_SUPABASE_URL }}" || { echo "::error::Missing VITE_SUPABASE_URL"; exit 1; }
-          test -n "${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" || { echo "::error::Missing VITE_SUPABASE_PUBLISHABLE_KEY"; exit 1; }
-      - run: npm install --global vercel@latest
-      - name: Deploy FastAPI container
-        id: backend
-        working-directory: backend
         env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
-        shell: bash
-        run: |
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          vercel build --prod --token="$VERCEL_TOKEN"
-          BACKEND_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          echo "url=$BACKEND_URL" >> "$GITHUB_OUTPUT"
-          echo "Backend: $BACKEND_URL" >> "$GITHUB_STEP_SUMMARY"
-      - name: Deploy React frontend
-        working-directory: frontend
-        env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
-          VITE_API_BASE_URL: ${{ steps.backend.outputs.url }}
+          VERCEL_BACKEND_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+          VERCEL_FRONTEND_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: |
+          REQUIRED_SECRETS=(
+            VERCEL_TOKEN
+            VERCEL_ORG_ID
+            VERCEL_BACKEND_PROJECT_ID
+            VERCEL_FRONTEND_PROJECT_ID
+            VITE_SUPABASE_URL
+            VITE_SUPABASE_PUBLISHABLE_KEY
+            VITE_API_BASE_URL
+          )
+
+          for name in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing $name"
+              exit 1
+            fi
+          done
+
+          echo "All required deployment secrets are available."
+
+      # ----------------------------------------------------------
+      # Install Vercel CLI
+      # ----------------------------------------------------------
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ----------------------------------------------------------
+      # Deploy FastAPI backend
+      # ----------------------------------------------------------
+
+      - name: Deploy FastAPI backend
+        id: backend
+        working-directory: backend
+
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+
+        shell: bash
+
+        run: |
+          echo "Preparing backend project..."
+
+          vercel pull \
+            --yes \
+            --environment=production \
+            --token="$VERCEL_TOKEN"
+
+          echo "Building backend..."
+
+          vercel build \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+          echo "Deploying backend..."
+
+          BACKEND_URL=$(vercel deploy \
+            --prebuilt \
+            --prod \
+            --token="$VERCEL_TOKEN")
+
+          echo "url=$BACKEND_URL" >> "$GITHUB_OUTPUT"
+
+          echo "### Backend deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "$BACKEND_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      # ----------------------------------------------------------
+      # Verify backend before deploying frontend
+      # ----------------------------------------------------------
+
+      - name: Check backend health
         shell: bash
         run: |
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          vercel build --prod --token="$VERCEL_TOKEN"
-          FRONTEND_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          echo "Frontend: $FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
-          curl --fail --retry 5 --retry-delay 3 "$FRONTEND_URL" >/dev/null
-          curl --fail --retry 5 --retry-delay 3 "${{ steps.backend.outputs.url }}/api/health" >/dev/null
+          BACKEND_URL="${{ steps.backend.outputs.url }}"
+
+          echo "Checking $BACKEND_URL/api/health"
+
+          curl \
+            --fail \
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            "$BACKEND_URL/api/health"
+
+      # ----------------------------------------------------------
+      # Deploy React frontend
+      # ----------------------------------------------------------
+
+      - name: Deploy React frontend
+        id: frontend
+        working-directory: frontend
+
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+
+          # The frontend is compiled against the backend created
+          # immediately above.
+          VITE_API_BASE_URL: ${{ steps.backend.outputs.url }}
+
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+        shell: bash
+
+        run: |
+          echo "Preparing frontend project..."
+
+          vercel pull \
+            --yes \
+            --environment=production \
+            --token="$VERCEL_TOKEN"
+
+          echo "Building frontend..."
+
+          vercel build \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+          echo "Deploying frontend..."
+
+          FRONTEND_URL=$(vercel deploy \
+            --prebuilt \
+            --prod \
+            --token="$VERCEL_TOKEN")
+
+          echo "url=$FRONTEND_URL" >> "$GITHUB_OUTPUT"
+
+          echo "### Frontend deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "$FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      # ----------------------------------------------------------
+      # Production smoke tests
+      # ----------------------------------------------------------
+
+      - name: Production smoke tests
+        shell: bash
+        run: |
+          BACKEND_URL="${{ steps.backend.outputs.url }}"
+          FRONTEND_URL="${{ steps.frontend.outputs.url }}"
+
+          echo "Checking frontend..."
+
+          curl \
+            --fail \
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            "$FRONTEND_URL" \
+            >/dev/null
+
+          echo "Checking backend..."
+
+          curl \
+            --fail \
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            "$BACKEND_URL/api/health" \
+            >/dev/null
+
+          echo "Checking RAWG proxy..."
+
+          curl \
+            --fail \
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            "$BACKEND_URL/api/rawg?path=%2Fgenres&page_size=1" \
+            >/dev/null
+
+          echo "Production smoke tests passed."
+
+      # ----------------------------------------------------------
+      # Final summary
+      # ----------------------------------------------------------
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "## GameFilter production deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Service | URL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Frontend | ${{ steps.frontend.outputs.url }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Backend | ${{ steps.backend.outputs.url }} |" >> "$GITHUB_STEP_SUMMARY"
