@@ -332,7 +332,7 @@ jobs:
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
 
-          VITE_API_BASE_URL: ${{ steps.backend.outputs.url }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
