@@ -113,8 +113,8 @@ jobs:
           push: false
           tags: gamefilter-backend:ci
 
-      # Placeholder public values are enough here because this job
-      # only proves that the frontend Docker image can compile.
+      # These are safe placeholder values.
+      # This job only checks that the image can build.
       - name: Build frontend image
         uses: docker/build-push-action@v7
         with:
@@ -214,7 +214,7 @@ jobs:
           node-version: 24
 
       # ----------------------------------------------------------
-      # Validate GitHub deployment configuration
+      # Check deployment configuration
       # ----------------------------------------------------------
 
       - name: Verify deployment secrets
@@ -225,6 +225,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
         run: |
           REQUIRED_SECRETS=(
             VERCEL_TOKEN
@@ -258,7 +259,6 @@ jobs:
 
       - name: Deploy FastAPI backend
         id: backend
-        working-directory: backend
 
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
@@ -267,6 +267,13 @@ jobs:
 
         run: |
           echo "Preparing backend project..."
+
+          # The Vercel backend project already has:
+          # Root Directory = backend
+          #
+          # Run the CLI from the repository root and let Vercel
+          # apply that configured Root Directory.
+          rm -rf .vercel
 
           vercel pull \
             --yes \
@@ -292,11 +299,12 @@ jobs:
           echo "$BACKEND_URL" >> "$GITHUB_STEP_SUMMARY"
 
       # ----------------------------------------------------------
-      # Verify backend before deploying frontend
+      # Check backend before deploying frontend
       # ----------------------------------------------------------
 
       - name: Check backend health
         shell: bash
+
         run: |
           BACKEND_URL="${{ steps.backend.outputs.url }}"
 
@@ -315,13 +323,10 @@ jobs:
 
       - name: Deploy React frontend
         id: frontend
-        working-directory: frontend
 
         env:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
 
-          # The frontend is compiled against the backend created
-          # immediately above.
           VITE_API_BASE_URL: ${{ steps.backend.outputs.url }}
 
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -332,6 +337,13 @@ jobs:
 
         run: |
           echo "Preparing frontend project..."
+
+          # The backend deployment created root-level .vercel
+          # metadata. Remove it before switching projects.
+          #
+          # The frontend Vercel project already has:
+          # Root Directory = frontend
+          rm -rf .vercel
 
           vercel pull \
             --yes \
@@ -362,6 +374,7 @@ jobs:
 
       - name: Production smoke tests
         shell: bash
+
         run: |
           BACKEND_URL="${{ steps.backend.outputs.url }}"
           FRONTEND_URL="${{ steps.frontend.outputs.url }}"
@@ -399,11 +412,12 @@ jobs:
           echo "Production smoke tests passed."
 
       # ----------------------------------------------------------
-      # Final summary
+      # Deployment summary
       # ----------------------------------------------------------
 
       - name: Deployment summary
         shell: bash
+
         run: |
           echo "## GameFilter production deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
