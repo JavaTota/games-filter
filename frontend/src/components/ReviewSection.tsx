@@ -9,6 +9,7 @@ import {
   FormLabel,
   HStack,
   Select,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
@@ -16,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { useCachedQuery } from "../lib/queryCache";
 import { AppLink } from "../lib/router";
 import {
@@ -62,11 +63,7 @@ export default function ReviewSection({ game }: Props) {
     try {
       await deleteReview(game.id);
       reviewsQuery.refetch();
-      toast({
-        title: "Review deleted.",
-        status: "success",
-        duration: 1800,
-      });
+      toast({ title: "Review deleted.", status: "success", duration: 1800 });
     } catch (error) {
       showError(error, "Review could not be deleted.");
     }
@@ -97,14 +94,14 @@ export default function ReviewSection({ game }: Props) {
       />
 
       {!isSupabaseConfigured && (
-        <Alert status="info">
+        <Alert status="info" borderRadius="xl">
           <AlertIcon />
           Configure Supabase Auth to sign in and review games.
         </Alert>
       )}
 
       {isSupabaseConfigured && !session && (
-        <Alert status="info">
+        <Alert status="info" borderRadius="xl">
           <AlertIcon />
           <Text>
             <AppLink to="/auth">Sign in</AppLink> to rate and review this game.
@@ -122,10 +119,12 @@ export default function ReviewSection({ game }: Props) {
       )}
 
       <Stack gap={4}>
-        {reviewsQuery.isLoading && <Text>Loading community reviews…</Text>}
+        {reviewsQuery.isLoading && (
+          <Text color="textSecondary">Loading community reviews…</Text>
+        )}
 
         {reviewsQuery.error && (
-          <Alert status="error">
+          <Alert status="error" borderRadius="xl">
             <AlertIcon />
             {reviewsQuery.error.message}
             <Button ml={3} size="xs" onClick={reviewsQuery.refetch}>
@@ -155,14 +154,15 @@ interface ReviewCardProps {
   onHelpful: () => void;
 }
 
-function ReviewCard({
-  review,
-  isOwner,
-  onDelete,
-  onHelpful,
-}: ReviewCardProps) {
+function ReviewCard({ review, isOwner, onDelete, onHelpful }: ReviewCardProps) {
   return (
-    <Box borderWidth="1px" borderRadius="xl" p={5}>
+    <Box
+      bg="surface"
+      borderWidth="1px"
+      borderColor="borderSubtle"
+      borderRadius="2xl"
+      p={{ base: 4, md: 5 }}
+    >
       <HStack justify="space-between" align="start">
         <HStack align="start">
           <Avatar
@@ -172,10 +172,15 @@ function ReviewCard({
           />
 
           <Stack gap={1}>
-            <Text fontWeight="800">{review.display_name}</Text>
-            <HStack>
-              <Badge colorScheme="purple">{review.score}/10</Badge>
-              <Badge colorScheme={review.recommended ? "green" : "red"}>
+            <Text fontWeight="900">{review.display_name}</Text>
+            <HStack flexWrap="wrap">
+              <Badge colorScheme="purple" borderRadius="full">
+                {review.score}/10
+              </Badge>
+              <Badge
+                colorScheme={review.recommended ? "green" : "red"}
+                borderRadius="full"
+              >
                 {review.recommended ? "Recommends" : "Does not recommend"}
               </Badge>
             </HStack>
@@ -189,14 +194,15 @@ function ReviewCard({
         )}
       </HStack>
 
-      <Text mt={3} whiteSpace="pre-wrap">
+      <Text mt={4} color="textSecondary" lineHeight="1.7" whiteSpace="pre-wrap">
         {review.body}
       </Text>
 
       <Button
-        mt={3}
+        mt={4}
         size="xs"
         variant={review.viewer_helpful ? "solid" : "outline"}
+        colorScheme={review.viewer_helpful ? "brand" : "gray"}
         onClick={onHelpful}
       >
         Helpful · {review.helpful_count}
@@ -244,8 +250,7 @@ function ReviewForm({ game, review, onSaved }: ReviewFormProps) {
       });
     } catch (error) {
       toast({
-        title:
-          error instanceof Error ? error.message : "Review could not be saved.",
+        title: error instanceof Error ? error.message : "Review could not be saved.",
         status: "error",
       });
     } finally {
@@ -254,38 +259,39 @@ function ReviewForm({ game, review, onSaved }: ReviewFormProps) {
   };
 
   return (
-    <Box borderWidth="1px" borderRadius="xl" p={5}>
+    <Box
+      bg="surface"
+      borderWidth="1px"
+      borderColor="borderSubtle"
+      borderRadius="2xl"
+      p={{ base: 5, md: 6 }}
+    >
       <Stack gap={4}>
-        <Text fontWeight="700">
-          {review ? "Edit your review" : "Review this game"}
-        </Text>
-
-        {review && (
-          <Text fontSize="sm" color="gray.400">
-            You can only have one review per game. Saving will update the one
-            you already wrote.
+        <Box>
+          <Text fontWeight="900" fontSize="lg">
+            {review ? "Edit your review" : "Review this game"}
           </Text>
-        )}
+          <Text fontSize="sm" color="textSecondary" mt={1}>
+            {review
+              ? "Saving will update your existing review for this game."
+              : "Share enough detail to help another player decide."}
+          </Text>
+        </Box>
 
-        <HStack align="end">
+        <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
           <FormControl>
-            <FormLabel>Score</FormLabel>
-            <Select
-              value={score}
-              onChange={(event) => setScore(Number(event.target.value))}
-            >
-              {Array.from({ length: 10 }, (_, index) => 10 - index).map(
-                (value) => (
-                  <option key={value} value={value}>
-                    {value}/10
-                  </option>
-                ),
-              )}
+            <FormLabel color="textSecondary">Score</FormLabel>
+            <Select value={score} onChange={(event) => setScore(Number(event.target.value))}>
+              {Array.from({ length: 10 }, (_, index) => 10 - index).map((value) => (
+                <option key={value} value={value}>
+                  {value}/10
+                </option>
+              ))}
             </Select>
           </FormControl>
 
           <FormControl>
-            <FormLabel>Recommend?</FormLabel>
+            <FormLabel color="textSecondary">Recommend?</FormLabel>
             <Select
               value={String(recommended)}
               onChange={(event) => setRecommended(event.target.value === "true")}
@@ -294,21 +300,17 @@ function ReviewForm({ game, review, onSaved }: ReviewFormProps) {
               <option value="false">No</option>
             </Select>
           </FormControl>
-        </HStack>
+        </SimpleGrid>
 
         <Textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
           placeholder="What worked, what did not, and who would you recommend it to?"
-          minH="120px"
+          minH="140px"
           maxLength={2000}
         />
 
-        <Button
-          colorScheme="green"
-          isLoading={saving}
-          onClick={handleSubmit}
-        >
+        <Button colorScheme="brand" isLoading={saving} onClick={handleSubmit}>
           {review ? "Update review" : "Publish review"}
         </Button>
       </Stack>

@@ -15,7 +15,7 @@ import {
   Tr,
 } from "@chakra-ui/react";
 
-import { useCompare } from "../context/CompareContext";
+import { useCompare } from "../context/useCompare";
 import { AppLink } from "../lib/router";
 
 export default function ComparePage() {
@@ -23,43 +23,71 @@ export default function ComparePage() {
 
   if (games.length === 0) {
     return (
-      <Container py={16} textAlign="center">
-        <Heading>No games selected</Heading>
-        <Text mt={3} color="gray.400">
-          Choose up to three games from Discover or a game detail page.
-        </Text>
-        <Button as="span" mt={5} colorScheme="green">
-          <AppLink to="/">Discover games</AppLink>
-        </Button>
+      <Container maxW="900px" py={{ base: 14, md: 24 }} textAlign="center">
+        <Box
+          bg="surface"
+          borderWidth="1px"
+          borderColor="borderSubtle"
+          borderRadius="3xl"
+          px={{ base: 6, md: 12 }}
+          py={{ base: 10, md: 14 }}
+          boxShadow="0 18px 50px rgba(5,10,25,.10)"
+        >
+          <Text color="brand.400" fontWeight="800" mb={2}>
+            GAME COMPARISON
+          </Text>
+          <Heading>No games selected yet</Heading>
+          <Text mt={3} color="textSecondary" maxW="560px" mx="auto">
+            Choose up to three games from Discover or a game detail page. We’ll
+            line up the ratings, release dates, playtime, and genres for you.
+          </Text>
+          <Button as="span" mt={6} colorScheme="brand">
+            <AppLink to="/">Discover games</AppLink>
+          </Button>
+        </Box>
       </Container>
     );
   }
 
   return (
-    <Container maxW="1200px" py={8}>
-      <Stack gap={6}>
+    <Container maxW="1200px" py={{ base: 8, md: 12 }}>
+      <Stack gap={7}>
         <Box>
-          <Heading>Compare games</Heading>
-          <Text color="gray.400" mt={2}>
-            A side-by-side view makes tradeoffs easier to see.
+          <Text
+            color="brand.400"
+            fontWeight="800"
+            fontSize="sm"
+            letterSpacing="0.12em"
+          >
+            SIDE BY SIDE
+          </Text>
+          <Heading size="xl" mt={1}>
+            Compare games
+          </Heading>
+          <Text color="textSecondary" mt={2}>
+            Put the tradeoffs next to each other before you commit your time.
           </Text>
         </Box>
 
-        <SimpleGrid columns={{ base: 1, md: games.length }} spacing={4}>
+        <SimpleGrid columns={{ base: 1, md: games.length }} spacing={5}>
           {games.map((game) => (
             <Box
               key={game.id}
+              bg="surface"
               borderWidth="1px"
-              borderRadius="xl"
+              borderColor="borderSubtle"
+              borderRadius="2xl"
               overflow="hidden"
+              boxShadow="0 14px 40px rgba(5,10,25,.08)"
             >
               <Image
                 src={game.background_image ?? "/gamefilter-logo.webp"}
                 alt={game.name}
                 aspectRatio={16 / 9}
+                width="100%"
                 objectFit="cover"
               />
-              <Box p={4}>
+              <Box p={5}>
                 <Heading size="md">
                   <AppLink to={`/games/${game.id}/${game.slug}`}>
                     {game.name}
@@ -70,13 +98,28 @@ export default function ComparePage() {
           ))}
         </SimpleGrid>
 
-        <Box overflowX="auto">
+        <Box
+          overflowX="auto"
+          bg="surface"
+          borderWidth="1px"
+          borderColor="borderSubtle"
+          borderRadius="2xl"
+          p={{ base: 2, md: 4 }}
+        >
           <Table variant="simple">
             <Thead>
               <Tr>
-                <Th>Metric</Th>
+                <Th color="textSecondary" borderColor="borderSubtle">
+                  Metric
+                </Th>
                 {games.map((game) => (
-                  <Th key={game.id}>{game.name}</Th>
+                  <Th
+                    key={game.id}
+                    color="textPrimary"
+                    borderColor="borderSubtle"
+                  >
+                    {game.name}
+                  </Th>
                 ))}
               </Tr>
             </Thead>
@@ -126,9 +169,13 @@ interface ComparisonRowProps {
 function ComparisonRow({ label, values }: ComparisonRowProps) {
   return (
     <Tr>
-      <Td fontWeight="700">{label}</Td>
+      <Td fontWeight="800" color="textSecondary" borderColor="borderSubtle">
+        {label}
+      </Td>
       {values.map((value, index) => (
-        <Td key={`${label}-${index}`}>{value}</Td>
+        <Td key={`${label}-${index}`} borderColor="borderSubtle">
+          {value}
+        </Td>
       ))}
     </Tr>
   );

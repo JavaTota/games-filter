@@ -1,21 +1,23 @@
 # Frontend
 frontend/node_modules/
 frontend/dist/
-frontend/.env*
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 !frontend/.env.example
 
 # Backend
 backend/.venv/
 backend/__pycache__/
+backend/**/__pycache__/
 backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.env
+!backend/.env.example
 
-# Root/local
-.env
+# Vercel and local tooling
 .vercel/
 **/.vercel/
 .DS_Store
-
-.vercel
-.env*
+.vscode/
+.idea/

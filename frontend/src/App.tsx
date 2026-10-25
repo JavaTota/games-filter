@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
 
 import NavBar from "./components/NavBar";
-import { useRouter } from "./lib/router";
+import { useRouter } from "./lib/useRouter";
 import AuthPage from "./pages/AuthPage";
 import ComparePage from "./pages/ComparePage";
 import DiscoverPage from "./pages/DiscoverPage";
@@ -29,9 +29,18 @@ function App() {
   };
 
   return (
-    <Box minH="100vh">
+    <Box minH="100vh" bg="pageBg" color="textPrimary" position="relative">
+      <Box
+        position="fixed"
+        inset="0"
+        pointerEvents="none"
+        opacity="0.7"
+        bgImage="radial-gradient(circle at 8% 12%, rgba(66,107,250,.12), transparent 30%), radial-gradient(circle at 88% 28%, rgba(139,92,246,.10), transparent 26%)"
+      />
       <NavBar />
-      {renderPage()}
+      <Box position="relative" zIndex="1">
+        {renderPage()}
+      </Box>
     </Box>
   );
 }

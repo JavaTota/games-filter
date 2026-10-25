@@ -1,20 +1,21 @@
-import { HStack, Switch, Text, useColorMode } from "@chakra-ui/react";
+import { IconButton, Tooltip, useColorMode } from "@chakra-ui/react";
+import { FiMoon, FiSun } from "react-icons/fi";
 
-const ColorModeSwitch = () => {
+export default function ColorModeSwitch() {
   const { colorMode, toggleColorMode } = useColorMode();
   const isDark = colorMode === "dark";
+  const label = isDark ? "Switch to light mode" : "Switch to dark mode";
 
   return (
-    <HStack>
-      <Switch
-        colorScheme="blue"
-        isChecked={isDark}
-        onChange={toggleColorMode}
-        aria-label="Toggle dark mode"
+    <Tooltip label={label} hasArrow>
+      <IconButton
+        aria-label={label}
+        icon={isDark ? <FiSun /> : <FiMoon />}
+        variant="ghost"
+        size="sm"
+        color="inherit"
+        onClick={toggleColorMode}
       />
-      <Text whiteSpace="nowrap">{isDark ? "DARK" : "LIGHT"} MODE</Text>
-    </HStack>
+    </Tooltip>
   );
-};
-
-export default ColorModeSwitch;
+}

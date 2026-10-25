@@ -9,6 +9,8 @@ import {
   FormLabel,
   Heading,
   Input,
+  Grid,
+  GridItem,
   Stack,
   Text,
   Textarea,
@@ -16,7 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { AppLink } from "../lib/router";
 import {
   deleteAvatar,
@@ -39,8 +41,8 @@ export default function ProfilePage() {
 
   if (!session) {
     return (
-      <Container py={10}>
-        <Alert status="info">
+      <Container maxW="760px" py={12}>
+        <Alert status="info" borderRadius="xl">
           <AlertIcon />
           <Text>
             <AppLink to="/auth">Sign in</AppLink> to manage your profile.
@@ -94,36 +96,65 @@ export default function ProfilePage() {
   };
 
   return (
-    <Container maxW="760px" py={10}>
-      <Stack gap={6}>
+    <Container maxW="980px" py={{ base: 8, md: 12 }}>
+      <Stack gap={7}>
         <Box>
-          <Heading>Profile</Heading>
-          <Text color="gray.400" mt={2}>
-            Your public name and avatar appear beside your GameMeter reviews.
+          <Text
+            color="brand.400"
+            fontWeight="800"
+            fontSize="sm"
+            letterSpacing="0.12em"
+          >
+            PUBLIC PROFILE
+          </Text>
+          <Heading size="xl" mt={1}>
+            Profile
+          </Heading>
+          <Text color="textSecondary" mt={2}>
+            Your public name, avatar, and bio appear beside your GameMeter
+            reviews.
           </Text>
         </Box>
 
-        <Stack
-          direction={{ base: "column", sm: "row" }}
-          align={{ base: "start", sm: "center" }}
-          gap={4}
-        >
-          <Avatar
-            size="2xl"
-            name={profile?.display_name}
-            src={profile?.avatar_url ?? undefined}
-          />
+        <Grid templateColumns={{ base: "1fr", md: "280px 1fr" }} gap={6}>
+          <GridItem>
+          <Stack
+            bg="surface"
+            borderWidth="1px"
+            borderColor="borderSubtle"
+            borderRadius="2xl"
+            p={6}
+            align="center"
+            textAlign="center"
+            gap={4}
+            height="fit-content"
+          >
+            <Avatar
+              size="2xl"
+              name={profile?.display_name}
+              src={profile?.avatar_url ?? undefined}
+              borderWidth="3px"
+              borderColor="brand.400"
+            />
+            <Box>
+              <Text fontWeight="900" fontSize="lg">
+                {profile?.display_name || session.user.email}
+              </Text>
+              <Text fontSize="sm" color="textSecondary">
+                GameFilter member
+              </Text>
+            </Box>
 
-          <Stack>
             <Input
               type="file"
               accept="image/jpeg,image/png,image/webp"
               p={1}
+              fontSize="sm"
               onChange={(event) =>
                 void handleAvatarChange(event.target.files?.[0])
               }
             />
-            <Text fontSize="xs" color="gray.400">
+            <Text fontSize="xs" color="textMuted">
               JPG, PNG, or WebP · maximum 2 MB.
             </Text>
 
@@ -132,37 +163,57 @@ export default function ProfilePage() {
                 size="sm"
                 colorScheme="red"
                 variant="ghost"
-                alignSelf="start"
                 onClick={handleRemoveAvatar}
               >
                 Remove picture
               </Button>
             )}
           </Stack>
-        </Stack>
+          </GridItem>
 
-        <FormControl>
-          <FormLabel>Display name</FormLabel>
-          <Input
-            value={displayName}
-            maxLength={60}
-            onChange={(event) => setDisplayName(event.target.value)}
-          />
-        </FormControl>
+          <GridItem>
+          <Stack
+            bg="surface"
+            borderWidth="1px"
+            borderColor="borderSubtle"
+            borderRadius="2xl"
+            p={{ base: 5, md: 7 }}
+            gap={5}
+          >
+            <FormControl>
+              <FormLabel color="textSecondary">Display name</FormLabel>
+              <Input
+                value={displayName}
+                maxLength={60}
+                onChange={(event) => setDisplayName(event.target.value)}
+              />
+            </FormControl>
 
-        <FormControl>
-          <FormLabel>Bio</FormLabel>
-          <Textarea
-            value={bio}
-            maxLength={500}
-            placeholder="A short public gaming bio."
-            onChange={(event) => setBio(event.target.value)}
-          />
-        </FormControl>
+            <FormControl>
+              <FormLabel color="textSecondary">Bio</FormLabel>
+              <Textarea
+                value={bio}
+                maxLength={500}
+                minH="150px"
+                placeholder="What do you play, what do you love, and what kind of recommendations are you looking for?"
+                onChange={(event) => setBio(event.target.value)}
+              />
+              <Text mt={2} fontSize="xs" color="textMuted" textAlign="right">
+                {bio.length}/500
+              </Text>
+            </FormControl>
 
-        <Button colorScheme="green" isLoading={saving} onClick={handleSave}>
-          Save profile
-        </Button>
+            <Button
+              colorScheme="brand"
+              alignSelf="flex-start"
+              isLoading={saving}
+              onClick={handleSave}
+            >
+              Save profile
+            </Button>
+          </Stack>
+          </GridItem>
+        </Grid>
       </Stack>
     </Container>
   );

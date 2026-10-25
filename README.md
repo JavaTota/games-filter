@@ -71,37 +71,40 @@ Storage RLS allows a user to upload, replace, or delete only objects inside thei
 ## Repository layout
 
 ```text
+.github/
+  workflows/
+    ci-cd.yml
+
 frontend/
+  public/
   src/
+    assets/
     components/
     context/
+    hooks/
+    lib/
     pages/
     services/
     types/
     utils/
+  tests/
+  package.json
+  vite.config.ts
   Dockerfile
-  nginx.conf
 
 backend/
   app/
-    routers/          # HTTP endpoints
-    services/         # RAWG + Supabase integrations
-    config.py
-    dependencies.py   # JWT verification dependencies
-    models.py
-    main.py
   tests/
+  pyproject.toml
   Dockerfile
-  Dockerfile.vercel
-
-supabase/
-  schema.sql
 
 docker-compose.yml
-.github/workflows/ci-cd.yml
+Makefile
+README.md
+DEPLOYMENT.md
 ```
 
-Comments are deliberately short. They explain security boundaries, state transitions, caching, and non-obvious logic without narrating basic syntax.
+All React/Vite code, configuration, tests, and public assets live under `frontend/`. The repository root only contains project-level orchestration and documentation.
 
 ## Backend API
 
@@ -144,7 +147,7 @@ The schema creates RLS policies for every table and for the avatar Storage bucke
 Copy the examples:
 
 ```bash
-cp .env.example .env
+cp frontend/.env.example frontend/.env
 cp backend/.env.example backend/.env
 ```
 
@@ -161,7 +164,7 @@ RAWG_API_KEY
 Then run the entire application:
 
 ```bash
-docker compose up --build
+docker compose --env-file frontend/.env up --build
 ```
 
 Open:

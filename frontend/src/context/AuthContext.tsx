@@ -1,11 +1,4 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { getProfile } from "../services/profileService";
 import {
@@ -16,22 +9,7 @@ import {
 } from "../services/supabaseClient";
 import type { SupabaseSession } from "../types/auth";
 import type { Profile } from "../types/community";
-
-interface AuthValue {
-  session: SupabaseSession | null;
-  profile: Profile | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (
-    email: string,
-    password: string,
-    displayName: string,
-  ) => Promise<boolean>;
-  signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthValue | null>(null);
+import { AuthContext } from "./authContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SupabaseSession | null>(null);
@@ -111,14 +89,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const auth = useContext(AuthContext);
-
-  if (!auth) {
-    throw new Error("useAuth must be used inside AuthProvider.");
-  }
-
-  return auth;
 }

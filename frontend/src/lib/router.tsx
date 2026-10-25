@@ -1,17 +1,12 @@
 import {
-  createContext,
   type MouseEvent,
   type ReactNode,
-  useContext,
   useEffect,
   useState,
 } from "react";
 
-interface RouterValue {
-  pathname: string;
-  search: string;
-  navigate: (to: string, replace?: boolean) => void;
-}
+import { RouterContext } from "./routerContext";
+import { useRouter } from "./useRouter";
 
 interface LinkProps {
   to: string;
@@ -19,8 +14,6 @@ interface LinkProps {
   className?: string;
   ariaLabel?: string;
 }
-
-const RouterContext = createContext<RouterValue | null>(null);
 
 function getCurrentLocation() {
   return {
@@ -55,16 +48,6 @@ export function RouterProvider({ children }: { children: ReactNode }) {
       {children}
     </RouterContext.Provider>
   );
-}
-
-export function useRouter() {
-  const router = useContext(RouterContext);
-
-  if (!router) {
-    throw new Error("useRouter must be used inside RouterProvider.");
-  }
-
-  return router;
 }
 
 export function AppLink({

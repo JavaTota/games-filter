@@ -8,11 +8,12 @@ import {
   HStack,
   Image,
   SimpleGrid,
+  Skeleton,
   Stack,
   Text,
 } from "@chakra-ui/react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { useCachedQuery } from "../lib/queryCache";
 import { AppLink } from "../lib/router";
 import { getLibrary } from "../services/communityService";
@@ -31,36 +32,65 @@ export default function LibraryPage() {
   );
 
   return (
-    <Container maxW="1200px" py={8}>
-      <Stack gap={6}>
+    <Container maxW="1200px" py={{ base: 8, md: 12 }}>
+      <Stack gap={7}>
         <Box>
-          <Heading>My Library</Heading>
-          <Text color="gray.400" mt={2}>
-            Favorites, backlog, currently playing, completed, and dropped games
-            in one place.
+          <Text
+            color="brand.400"
+            fontWeight="800"
+            fontSize="sm"
+            letterSpacing="0.12em"
+          >
+            YOUR GAMES
+          </Text>
+          <Heading size="xl" mt={1}>
+            My Library
+          </Heading>
+          <Text color="textSecondary" mt={2} maxW="700px">
+            Keep favorites, backlog, currently playing, completed, and dropped
+            games in one clean place.
           </Text>
         </Box>
 
         {!isSupabaseConfigured && (
-          <Alert status="info">
+          <Alert status="info" borderRadius="xl">
             <AlertIcon />
             Configure Supabase to activate personal libraries.
           </Alert>
         )}
 
         {isSupabaseConfigured && !session && (
-          <Alert status="info">
+          <Alert status="info" borderRadius="xl">
             <AlertIcon />
             <Text>
-              <AppLink to="/auth">Sign in</AppLink> to save and sync your library.
+              <AppLink to="/auth">Sign in</AppLink> to save and sync your
+              library.
             </Text>
           </Alert>
         )}
 
-        {libraryQuery.isLoading && <Text>Loading your library…</Text>}
+        {libraryQuery.isLoading && (
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} height="300px" borderRadius="2xl" />
+            ))}
+          </SimpleGrid>
+        )}
 
         {libraryQuery.data?.length === 0 && (
-          <Text>Your library is empty. Open any game and choose a status.</Text>
+          <Box
+            bg="surface"
+            borderWidth="1px"
+            borderColor="borderSubtle"
+            borderRadius="2xl"
+            p={8}
+            textAlign="center"
+          >
+            <Heading size="md">Your library is empty</Heading>
+            <Text color="textSecondary" mt={2}>
+              Open any game and choose a status to start building it.
+            </Text>
+          </Box>
         )}
 
         <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
@@ -77,18 +107,34 @@ function LibraryCard({ entry }: { entry: LibraryEntry }) {
   const statusLabel = entry.status.replace(/_/g, " ");
 
   return (
-    <Box borderWidth="1px" borderRadius="xl" overflow="hidden">
+    <Box
+      bg="surface"
+      borderWidth="1px"
+      borderColor="borderSubtle"
+      borderRadius="2xl"
+      overflow="hidden"
+      boxShadow="0 14px 40px rgba(5,10,25,.08)"
+      transition="transform .2s ease, border-color .2s ease"
+      _hover={{ transform: "translateY(-4px)", borderColor: "brand.400" }}
+    >
       <Image
         src={entry.background_image ?? "/gamefilter-logo.webp"}
         alt={entry.game_name}
         aspectRatio={16 / 9}
+        width="100%"
         objectFit="cover"
       />
 
-      <Stack p={4}>
+      <Stack p={5} gap={3}>
         <HStack justify="space-between">
-          <Badge colorScheme="purple">{statusLabel}</Badge>
-          {entry.favorite && <Badge colorScheme="yellow">Favorite</Badge>}
+          <Badge colorScheme="purple" borderRadius="full">
+            {statusLabel}
+          </Badge>
+          {entry.favorite && (
+            <Badge colorScheme="yellow" borderRadius="full">
+              Favorite
+            </Badge>
+          )}
         </HStack>
 
         <Heading size="md">

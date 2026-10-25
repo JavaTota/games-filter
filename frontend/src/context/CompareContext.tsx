@@ -1,22 +1,10 @@
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useState,
-} from "react";
+import { type ReactNode, useState } from "react";
 
 import type { Game } from "../types/game";
+import { CompareContext } from "./compareContext";
 
 const STORAGE_KEY = "gamefilter.compare";
 const MAX_COMPARE_GAMES = 3;
-
-interface CompareValue {
-  games: Game[];
-  toggle: (game: Game) => string | null;
-  clear: () => void;
-}
-
-const CompareContext = createContext<CompareValue | null>(null);
 
 function readStoredGames(): Game[] {
   try {
@@ -58,14 +46,4 @@ export function CompareProvider({ children }: { children: ReactNode }) {
       {children}
     </CompareContext.Provider>
   );
-}
-
-export function useCompare() {
-  const compare = useContext(CompareContext);
-
-  if (!compare) {
-    throw new Error("useCompare must be used inside CompareProvider.");
-  }
-
-  return compare;
 }

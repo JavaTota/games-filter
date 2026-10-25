@@ -1,4 +1,5 @@
 import {
+  Box,
   CircularProgress,
   CircularProgressLabel,
   HStack,
@@ -23,29 +24,40 @@ export default function GameMeter({ summary }: Props) {
   const reviewLabel = summary.reviewCount === 1 ? "review" : "reviews";
 
   return (
-    <HStack gap={5} align="center">
+    <HStack
+      gap={5}
+      align="center"
+      bg="surfaceMuted"
+      borderWidth="1px"
+      borderColor="borderSubtle"
+      borderRadius="2xl"
+      p={5}
+    >
       <CircularProgress
         value={summary.score}
         size="86px"
         color={getScoreColor(summary.score)}
-        trackColor="whiteAlpha.200"
+        trackColor="blackAlpha.200"
       >
-        <CircularProgressLabel fontWeight="800">
+        <CircularProgressLabel fontWeight="900" color="textPrimary">
           {hasReviews ? summary.score : "—"}
         </CircularProgressLabel>
       </CircularProgress>
 
       <Stack gap={0}>
-        <Text fontWeight="800" fontSize="lg">
-          GameMeter
-        </Text>
-        <Text>
+        <HStack gap={2}>
+          <Box boxSize="8px" borderRadius="full" bg="brand.400" />
+          <Text fontWeight="900" fontSize="lg">
+            GameMeter
+          </Text>
+        </HStack>
+        <Text color="textPrimary">
           {hasReviews
             ? `${summary.recommendedPercent}% recommend it`
             : "No community reviews yet"}
         </Text>
-        <Text fontSize="sm" color="gray.400">
-          {summary.reviewCount} {reviewLabel} · score is the average rating × 10
+        <Text fontSize="sm" color="textSecondary">
+          {summary.reviewCount} {reviewLabel} · average community score
         </Text>
       </Stack>
     </HStack>

@@ -1,7 +1,7 @@
 .PHONY: up down logs frontend-check backend-check
 
 up:
-	docker compose up --build
+	docker compose --env-file frontend/.env up --build
 
 down:
 	docker compose down

@@ -8,13 +8,15 @@ import {
   FormLabel,
   Heading,
   Input,
+  SimpleGrid,
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { FiBookmark, FiMessageSquare, FiStar } from "react-icons/fi";
 
-import { useAuth } from "../context/AuthContext";
-import { useRouter } from "../lib/router";
+import { useAuth } from "../context/useAuth";
+import { useRouter } from "../lib/useRouter";
 import { isSupabaseConfigured } from "../services/supabaseClient";
 
 type AuthMode = "signin" | "signup";
@@ -33,12 +35,23 @@ export default function AuthPage() {
 
   if (session) {
     return (
-      <Container py={16}>
-        <Heading>You are signed in</Heading>
-        <Text mt={3}>{session.user.email}</Text>
-        <Button mt={5} colorScheme="green" onClick={() => navigate("/library")}>
-          Open my library
-        </Button>
+      <Container maxW="720px" py={{ base: 14, md: 24 }}>
+        <Box
+          bg="surface"
+          borderWidth="1px"
+          borderColor="borderSubtle"
+          borderRadius="3xl"
+          p={{ base: 7, md: 10 }}
+          textAlign="center"
+        >
+          <Heading>You are signed in</Heading>
+          <Text mt={3} color="textSecondary">
+            {session.user.email}
+          </Text>
+          <Button mt={6} colorScheme="brand" onClick={() => navigate("/library")}>
+            Open my library
+          </Button>
+        </Box>
       </Container>
     );
   }
@@ -55,23 +68,15 @@ export default function AuthPage() {
         return;
       }
 
-      const signedIn = await signUp(
-        email.trim(),
-        password,
-        displayName.trim(),
-      );
+      const signedIn = await signUp(email.trim(), password, displayName.trim());
 
       if (signedIn) {
         navigate("/");
       } else {
-        setMessage(
-          "Account created. Check your email to confirm it, then sign in.",
-        );
+        setMessage("Account created. Check your email to confirm it, then sign in.");
       }
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Authentication failed.",
-      );
+      setError(reason instanceof Error ? reason.message : "Authentication failed.");
     } finally {
       setBusy(false);
     }
@@ -89,84 +94,146 @@ export default function AuthPage() {
     (mode === "signin" || Boolean(displayName.trim()));
 
   return (
-    <Container maxW="500px" py={12}>
-      <Box borderWidth="1px" borderRadius="2xl" p={{ base: 5, md: 8 }}>
-        <Stack gap={5}>
+    <Container maxW="1100px" py={{ base: 8, md: 14 }}>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={0}>
+        <Stack
+          justify="center"
+          gap={6}
+          p={{ base: 7, md: 10 }}
+          color="white"
+          bgGradient="linear(145deg, #172554, #312E81 70%, #111827)"
+          borderTopRadius={{ base: "3xl", md: "3xl" }}
+          borderBottomLeftRadius={{ base: "none", md: "3xl" }}
+          borderTopRightRadius={{ base: "3xl", md: "none" }}
+        >
           <Box>
-            <Heading>{mode === "signin" ? "Sign in" : "Create account"}</Heading>
-            <Text color="gray.400" mt={2}>
-              An account unlocks reviews, favorites, and your personal game
-              library.
+            <Text color="brand.200" fontWeight="800" letterSpacing="0.12em">
+              GAMEFILTER ACCOUNT
+            </Text>
+            <Heading size="xl" mt={2} letterSpacing="-0.03em">
+              Keep your game life in sync.
+            </Heading>
+            <Text mt={3} color="whiteAlpha.800" lineHeight="1.7">
+              Sign in once and your reviews, favorites, profile, and library
+              follow you across devices.
             </Text>
           </Box>
 
-          {!isSupabaseConfigured && (
-            <Alert status="warning">
-              <AlertIcon />
-              Supabase environment variables are not configured.
-            </Alert>
-          )}
+          <Stack gap={3}>
+            <Feature icon={<FiBookmark />} text="Build a personal game library" />
+            <Feature icon={<FiMessageSquare />} text="Write and edit GameMeter reviews" />
+            <Feature icon={<FiStar />} text="Save favorites and playing status" />
+          </Stack>
+        </Stack>
 
-          {error && (
-            <Alert status="error">
-              <AlertIcon />
-              {error}
-            </Alert>
-          )}
+        <Box
+          bg="surface"
+          color="textPrimary"
+          borderWidth="1px"
+          borderColor="borderSubtle"
+          borderLeftWidth={{ base: "1px", md: "0" }}
+          borderTopWidth={{ base: "0", md: "1px" }}
+          borderRightRadius={{ base: "none", md: "3xl" }}
+          borderBottomRadius={{ base: "3xl", md: "3xl" }}
+          borderBottomLeftRadius={{ base: "3xl", md: "none" }}
+          p={{ base: 7, md: 10 }}
+        >
+          <Stack gap={5}>
+            <Box>
+              <Heading>{mode === "signin" ? "Welcome back" : "Create account"}</Heading>
+              <Text color="textSecondary" mt={2}>
+                {mode === "signin"
+                  ? "Sign in to continue your library and reviews."
+                  : "Create your profile and start building your library."}
+              </Text>
+            </Box>
 
-          {message && (
-            <Alert status="success">
-              <AlertIcon />
-              {message}
-            </Alert>
-          )}
+            {!isSupabaseConfigured && (
+              <Alert status="warning" borderRadius="xl">
+                <AlertIcon />
+                Supabase environment variables are not configured.
+              </Alert>
+            )}
 
-          {mode === "signup" && (
+            {error && (
+              <Alert status="error" borderRadius="xl">
+                <AlertIcon />
+                {error}
+              </Alert>
+            )}
+
+            {message && (
+              <Alert status="success" borderRadius="xl">
+                <AlertIcon />
+                {message}
+              </Alert>
+            )}
+
+            {mode === "signup" && (
+              <FormControl>
+                <FormLabel color="textSecondary">Display name</FormLabel>
+                <Input
+                  value={displayName}
+                  maxLength={60}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                />
+              </FormControl>
+            )}
+
             <FormControl>
-              <FormLabel>Display name</FormLabel>
+              <FormLabel color="textSecondary">Email</FormLabel>
               <Input
-                value={displayName}
-                maxLength={60}
-                onChange={(event) => setDisplayName(event.target.value)}
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
               />
             </FormControl>
-          )}
 
-          <FormControl>
-            <FormLabel>Email</FormLabel>
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </FormControl>
+            <FormControl>
+              <FormLabel color="textSecondary">Password</FormLabel>
+              <Input
+                type="password"
+                value={password}
+                minLength={6}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </FormControl>
 
-          <FormControl>
-            <FormLabel>Password</FormLabel>
-            <Input
-              type="password"
-              value={password}
-              minLength={6}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </FormControl>
+            <Button
+              colorScheme="brand"
+              isLoading={busy}
+              isDisabled={!isSupabaseConfigured || !formIsValid}
+              onClick={handleSubmit}
+            >
+              {mode === "signin" ? "Sign in" : "Create account"}
+            </Button>
 
-          <Button
-            colorScheme="green"
-            isLoading={busy}
-            isDisabled={!isSupabaseConfigured || !formIsValid}
-            onClick={handleSubmit}
-          >
-            {mode === "signin" ? "Sign in" : "Create account"}
-          </Button>
-
-          <Button variant="ghost" onClick={switchMode}>
-            {mode === "signin"
-              ? "Need an account? Sign up"
-              : "Already have an account? Sign in"}
-          </Button>
-        </Stack>
-      </Box>
+            <Button variant="ghost" onClick={switchMode}>
+              {mode === "signin"
+                ? "Need an account? Sign up"
+                : "Already have an account? Sign in"}
+            </Button>
+          </Stack>
+        </Box>
+      </SimpleGrid>
     </Container>
+  );
+}
+
+function Feature({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <Stack direction="row" align="center" gap={3}>
+      <Box
+        display="grid"
+        placeItems="center"
+        boxSize="38px"
+        flexShrink={0}
+        borderRadius="xl"
+        bg="whiteAlpha.200"
+      >
+        {icon}
+      </Box>
+      <Text fontWeight="700">{text}</Text>
+    </Stack>
   );
 }

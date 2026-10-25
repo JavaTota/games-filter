@@ -1,11 +1,14 @@
 import {
   Box,
+  HStack,
+  Image,
   Input,
   InputGroup,
   InputLeftElement,
   List,
   ListItem,
   Spinner,
+  Stack,
   Text,
 } from "@chakra-ui/react";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
@@ -13,7 +16,8 @@ import { BsSearch } from "react-icons/bs";
 
 import useDebouncedValue from "../hooks/useDebouncedValue";
 import { useCachedQuery } from "../lib/queryCache";
-import { useRouter } from "../lib/router";
+import { useRouter } from "../lib/useRouter";
+import getCroppedImageUrl from "../services/imageUrl";
 import { searchGames } from "../services/rawgService";
 
 interface Props {
@@ -85,8 +89,8 @@ export default function SearchAutocomplete({
   return (
     <Box position="relative" width="100%">
       <form onSubmit={handleSubmit}>
-        <InputGroup>
-          <InputLeftElement>
+        <InputGroup size="lg">
+          <InputLeftElement pointerEvents="none" color="textMuted">
             <BsSearch />
           </InputLeftElement>
 
@@ -99,9 +103,12 @@ export default function SearchAutocomplete({
             onFocus={() => setIsOpen(true)}
             onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
             onKeyDown={handleKeyDown}
-            placeholder="Search games..."
-            borderRadius="full"
-            bg="whiteAlpha.100"
+            placeholder="Search games, genres, worlds..."
+            borderRadius="2xl"
+            bg="inputBg"
+            color="textPrimary"
+            borderColor="borderSubtle"
+            boxShadow="0 16px 45px rgba(0,0,0,.14)"
             aria-label="Search games"
             aria-autocomplete="list"
             aria-expanded={showResults}
@@ -112,25 +119,29 @@ export default function SearchAutocomplete({
       {showResults && (
         <Box
           position="absolute"
-          top="calc(100% + 8px)"
+          top="calc(100% + 10px)"
           left="0"
           right="0"
-          bg="gray.700"
-          borderRadius="lg"
+          bg="surfaceElevated"
+          color="textPrimary"
+          borderRadius="2xl"
           shadow="2xl"
           borderWidth="1px"
-          borderColor="whiteAlpha.200"
+          borderColor="borderSubtle"
           zIndex="30"
           overflow="hidden"
         >
           {searchQuery.isLoading && (
-            <Box p={3}>
+            <HStack p={4} color="textSecondary">
               <Spinner size="sm" />
-            </Box>
+              <Text>Searching games…</Text>
+            </HStack>
           )}
 
           {!searchQuery.isLoading && results.length === 0 && (
-            <Text p={3}>No matches found.</Text>
+            <Text p={4} color="textSecondary">
+              No matches found.
+            </Text>
           )}
 
           <List role="listbox">
@@ -139,16 +150,34 @@ export default function SearchAutocomplete({
                 key={game.id}
                 role="option"
                 aria-selected={activeIndex === index}
-                px={4}
-                py={3}
+                px={3}
+                py={2.5}
                 cursor="pointer"
-                bg={activeIndex === index ? "whiteAlpha.200" : undefined}
-                _hover={{ bg: "whiteAlpha.100" }}
+                bg={activeIndex === index ? "surfaceMuted" : "transparent"}
+                _hover={{ bg: "surfaceMuted" }}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => openGame(index)}
               >
-                {game.name}
+                <HStack gap={3}>
+                  <Image
+                    src={getCroppedImageUrl(game.background_image ?? "")}
+                    fallbackSrc="/gamefilter-logo.webp"
+                    alt=""
+                    boxSize="52px"
+                    borderRadius="lg"
+                    objectFit="cover"
+                  />
+                  <Stack gap={0} minW={0}>
+                    <Text fontWeight="800" noOfLines={1}>
+                      {game.name}
+                    </Text>
+                    <Text fontSize="sm" color="textSecondary">
+                      {game.released?.slice(0, 4) ?? "Release TBA"}
+                      {game.rating ? ` · ${game.rating.toFixed(1)}/5` : ""}
+                    </Text>
+                  </Stack>
+                </HStack>
               </ListItem>
             ))}
           </List>

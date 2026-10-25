@@ -1,8 +1,8 @@
 import { Button, HStack, Select, useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
-import { useAuth } from "../context/AuthContext";
-import { useRouter } from "../lib/router";
+import { useAuth } from "../context/useAuth";
+import { useRouter } from "../lib/useRouter";
 import {
   deleteLibraryEntry,
   getLibraryEntry,
@@ -81,8 +81,7 @@ export default function LibraryControls({ game }: Props) {
       if (previousEntry) setStatus(previousEntry.status);
 
       toast({
-        title:
-          error instanceof Error ? error.message : "Library update failed.",
+        title: error instanceof Error ? error.message : "Library update failed.",
         status: "error",
       });
     } finally {
@@ -124,9 +123,9 @@ export default function LibraryControls({ game }: Props) {
   if (!isSupabaseConfigured) return null;
 
   return (
-    <HStack flexWrap="wrap">
+    <HStack flexWrap="wrap" gap={2}>
       <Select
-        width="180px"
+        width={{ base: "100%", sm: "190px" }}
         value={status}
         isDisabled={saving}
         onChange={(event) =>
@@ -141,7 +140,8 @@ export default function LibraryControls({ game }: Props) {
 
       <Button
         isLoading={saving}
-        variant="outline"
+        variant={entry?.favorite ? "solid" : "outline"}
+        colorScheme={entry?.favorite ? "yellow" : "gray"}
         onClick={handleFavorite}
       >
         {entry?.favorite ? "★ Favorited" : "☆ Favorite"}

@@ -1,5 +1,6 @@
 import {
   Button,
+  Divider,
   FormControl,
   FormLabel,
   HStack,
@@ -8,6 +9,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import { FiSliders } from "react-icons/fi";
 
 import type { DiscoverFilters, Genre, Platform } from "../types/game";
 
@@ -31,13 +33,18 @@ export default function FilterPanel({
   };
 
   return (
-    <Stack gap={4}>
-      <Text fontWeight="700" fontSize="lg">
-        Refine results
-      </Text>
+    <Stack gap={4} color="textPrimary">
+      <HStack>
+        <FiSliders />
+        <Text fontWeight="800" fontSize="lg">
+          Refine results
+        </Text>
+      </HStack>
+
+      <Divider borderColor="borderSubtle" />
 
       <FormControl>
-        <FormLabel>Genre</FormLabel>
+        <FormLabel color="textSecondary">Genre</FormLabel>
         <Select
           value={filters.genre}
           onChange={(event) => updateFilter({ genre: event.target.value })}
@@ -52,7 +59,7 @@ export default function FilterPanel({
       </FormControl>
 
       <FormControl>
-        <FormLabel>Platform</FormLabel>
+        <FormLabel color="textSecondary">Platform</FormLabel>
         <Select
           value={filters.platform}
           onChange={(event) => updateFilter({ platform: event.target.value })}
@@ -67,7 +74,7 @@ export default function FilterPanel({
       </FormControl>
 
       <FormControl>
-        <FormLabel>Sort</FormLabel>
+        <FormLabel color="textSecondary">Sort</FormLabel>
         <Select
           value={filters.ordering}
           onChange={(event) => updateFilter({ ordering: event.target.value })}
@@ -82,7 +89,7 @@ export default function FilterPanel({
 
       <HStack align="start">
         <FormControl>
-          <FormLabel>From year</FormLabel>
+          <FormLabel color="textSecondary">From year</FormLabel>
           <Input
             type="number"
             min="1980"
@@ -93,7 +100,7 @@ export default function FilterPanel({
         </FormControl>
 
         <FormControl>
-          <FormLabel>To year</FormLabel>
+          <FormLabel color="textSecondary">To year</FormLabel>
           <Input
             type="number"
             min="1980"
@@ -105,7 +112,7 @@ export default function FilterPanel({
       </HStack>
 
       <FormControl>
-        <FormLabel>Minimum player rating</FormLabel>
+        <FormLabel color="textSecondary">Minimum player rating</FormLabel>
         <Select
           value={filters.minRating}
           onChange={(event) =>
@@ -121,7 +128,7 @@ export default function FilterPanel({
       </FormControl>
 
       <FormControl>
-        <FormLabel>Minimum critic score</FormLabel>
+        <FormLabel color="textSecondary">Minimum critic score</FormLabel>
         <Select
           value={filters.minCritic}
           onChange={(event) =>
@@ -137,7 +144,7 @@ export default function FilterPanel({
       </FormControl>
 
       <FormControl>
-        <FormLabel>Maximum playtime</FormLabel>
+        <FormLabel color="textSecondary">Maximum playtime</FormLabel>
         <Select
           value={filters.maxPlaytime}
           onChange={(event) =>
