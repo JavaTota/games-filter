@@ -5,7 +5,7 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
   import.meta.env.VITE_SUPABASE_ANON_KEY ??
   "";
-const SESSION_KEY = "gamemeter.supabase.session";
+const SESSION_KEY = "gamefilter.supabase.session";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && publishableKey);
 
@@ -79,7 +79,59 @@ async function authRequest<T>(path: string, init: RequestInit) {
   return body as T;
 }
 
+async function consumeAuthCallback(): Promise<SupabaseSession | null> {
+  if (!isSupabaseConfigured || !window.location.hash) {
+    return null;
+  }
+
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+
+  const expiresAtParam = Number(params.get("expires_at"));
+  const expiresIn = Number(params.get("expires_in") ?? 3600);
+
+  try {
+    const user = await authRequest<SupabaseUser>("/user", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const session: SupabaseSession = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at:
+        expiresAtParam || Math.floor(Date.now() / 1000) + expiresIn,
+      user,
+    };
+
+    storeSession(session);
+
+    // Remove auth tokens from the address bar after they have been stored.
+    window.history.replaceState(
+      {},
+      document.title,
+      `${window.location.pathname}${window.location.search}`,
+    );
+
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 export async function getSession(): Promise<SupabaseSession | null> {
+  const callbackSession = await consumeAuthCallback();
+  if (callbackSession) {
+    return callbackSession;
+  }
+
   const session = readStoredSession();
 
   if (!session || !isSupabaseConfigured) {
@@ -128,14 +180,19 @@ export async function signUp(
   password: string,
   displayName: string,
 ) {
-  const response = await authRequest<SignupPayload>("/signup", {
-    method: "POST",
-    body: JSON.stringify({
-      email,
-      password,
-      data: { display_name: displayName },
-    }),
-  });
+  const redirectTo = `${window.location.origin}/auth`;
+
+  const response = await authRequest<SignupPayload>(
+    `/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+        data: { display_name: displayName },
+      }),
+    },
+  );
 
   if (response.access_token && response.refresh_token && response.expires_in) {
     const session = toSession(response as AuthSessionPayload);
