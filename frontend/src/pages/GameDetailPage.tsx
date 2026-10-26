@@ -284,7 +284,7 @@ export default function GameDetailPage({ gameId }: Props) {
                     _hover={{ transform: "translateY(-3px)", borderColor: "brand.400" }}
                   >
                     <Image
-                      src={similarGame.background_image ?? "/gamefilter-logo.webp"}
+                      src={similarGame.background_image ?? "/gamemaster-logo.webp"}
                       alt={similarGame.name}
                       aspectRatio={16 / 9}
                       width="100%"

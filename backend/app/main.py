@@ -7,7 +7,7 @@ from app.routers import health, library, profile, rawg, reviews
 settings = get_settings()
 
 app = FastAPI(
-    title="GameFilter API",
+    title="GameMaster API",
     version="2.0.0",
     description=(
         "Python backend for game discovery, profiles, libraries, "

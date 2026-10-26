@@ -162,7 +162,7 @@ export default function SearchAutocomplete({
                 <HStack gap={3}>
                   <Image
                     src={getCroppedImageUrl(game.background_image ?? "")}
-                    fallbackSrc="/gamefilter-logo.webp"
+                    fallbackSrc="/gamemaster-logo.webp"
                     alt=""
                     boxSize="52px"
                     borderRadius="lg"

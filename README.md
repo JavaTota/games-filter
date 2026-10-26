@@ -1,6 +1,6 @@
-# GameFilter — React + FastAPI + Supabase
+# GameMaster — React + FastAPI + Supabase
 
-GameFilter is a full-stack game discovery and community-review application. The repository is intentionally split into a React frontend and Python backend so the security boundary, business logic, and data model are visible to a reviewer.
+GameMaster is a full-stack game discovery and community-review application. The repository is intentionally split into a React frontend and Python backend so the security boundary, business logic, and data model are visible to a reviewer.
 
 ## Architecture
 
@@ -138,7 +138,7 @@ FastAPI also exposes interactive API documentation at `/docs`.
 3. Run `supabase/schema.sql` in **SQL Editor**.
 4. Copy the project URL and **publishable key**.
 
-If the older GameFilter prototype schema was already installed, run `supabase/migrate_from_prototype.sql` first and then run `supabase/schema.sql`. The migration preserves existing reviews and library rows while moving public reviewer identity into `profiles`.
+If the older GameMaster prototype schema was already installed, run `supabase/migrate_from_prototype.sql` first and then run `supabase/schema.sql`. The migration preserves existing reviews and library rows while moving public reviewer identity into `profiles`.
 
 The schema creates RLS policies for every table and for the avatar Storage bucket.
 

@@ -108,7 +108,7 @@ export default function AuthPage() {
         >
           <Box>
             <Text color="brand.200" fontWeight="800" letterSpacing="0.12em">
-              GAMEFILTER ACCOUNT
+              GAMEMASTER ACCOUNT
             </Text>
             <Heading size="xl" mt={2} letterSpacing="-0.03em">
               Keep your game life in sync.

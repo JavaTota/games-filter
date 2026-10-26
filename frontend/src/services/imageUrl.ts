@@ -2,7 +2,7 @@ const CROPPED_WIDTH = 600;
 const CROPPED_HEIGHT = 400;
 
 export default function getCroppedImageUrl(url: string) {
-  if (!url) return "/gamefilter-logo.webp";
+  if (!url) return "/gamemaster-logo.webp";
 
   const marker = "media/";
   const markerIndex = url.indexOf(marker);

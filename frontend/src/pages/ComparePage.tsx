@@ -81,7 +81,7 @@ export default function ComparePage() {
               boxShadow="0 14px 40px rgba(5,10,25,.08)"
             >
               <Image
-                src={game.background_image ?? "/gamefilter-logo.webp"}
+                src={game.background_image ?? "/gamemaster-logo.webp"}
                 alt={game.name}
                 aspectRatio={16 / 9}
                 width="100%"
