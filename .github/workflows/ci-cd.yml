@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: gamemaster-${{ github.workflow }}-${{ github.ref }}
+  group: gamemeter-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -111,7 +111,7 @@ jobs:
         with:
           context: backend
           push: false
-          tags: gamemaster-backend:ci
+          tags: gamemeter-backend:ci
 
       # These are safe placeholder values.
       # This job only checks that the image can build.
@@ -120,7 +120,7 @@ jobs:
         with:
           context: frontend
           push: false
-          tags: gamemaster-frontend:ci
+          tags: gamemeter-frontend:ci
           build-args: |
             VITE_SUPABASE_URL=https://example.supabase.co
             VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder
@@ -155,8 +155,8 @@ jobs:
         run: |
           OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
 
-          BACKEND="ghcr.io/$OWNER/gamemaster-backend"
-          FRONTEND="ghcr.io/$OWNER/gamemaster-frontend"
+          BACKEND="ghcr.io/$OWNER/gamemeter-backend"
+          FRONTEND="ghcr.io/$OWNER/gamemeter-frontend"
 
           echo "Building backend image..."
 
@@ -424,7 +424,7 @@ jobs:
         shell: bash
 
         run: |
-          echo "## GameMaster production deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "## GameMeter production deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Service | URL |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"

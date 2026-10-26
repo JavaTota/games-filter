@@ -118,7 +118,7 @@ function LibraryCard({ entry }: { entry: LibraryEntry }) {
       _hover={{ transform: "translateY(-4px)", borderColor: "brand.400" }}
     >
       <Image
-        src={entry.background_image ?? "/gamemaster-logo.webp"}
+        src={entry.background_image ?? "/gamemeter-logo.webp"}
         alt={entry.game_name}
         aspectRatio={16 / 9}
         width="100%"

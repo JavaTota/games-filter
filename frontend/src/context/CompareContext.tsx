@@ -3,7 +3,7 @@ import { type ReactNode, useState } from "react";
 import type { Game } from "../types/game";
 import { CompareContext } from "./compareContext";
 
-const STORAGE_KEY = "gamemaster.compare";
+const STORAGE_KEY = "gamemeter.compare";
 const MAX_COMPARE_GAMES = 3;
 
 function readStoredGames(): Game[] {

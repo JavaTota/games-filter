@@ -141,7 +141,7 @@ export default function ProfilePage() {
                 {profile?.display_name || session.user.email}
               </Text>
               <Text fontSize="sm" color="textSecondary">
-                GameMaster member
+                GameMeter member
               </Text>
             </Box>
 

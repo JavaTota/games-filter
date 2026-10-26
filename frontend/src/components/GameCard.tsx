@@ -61,7 +61,7 @@ export default function GameCard({ game, filters }: Props) {
         <Image
           src={getCroppedImageUrl(game.background_image ?? "")}
           alt={`${game.name} cover`}
-          fallbackSrc="/gamemaster-logo.webp"
+          fallbackSrc="/gamemeter-logo.webp"
           aspectRatio={16 / 9}
           width="100%"
           objectFit="cover"

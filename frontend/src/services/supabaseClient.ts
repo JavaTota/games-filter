@@ -5,7 +5,7 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
   import.meta.env.VITE_SUPABASE_ANON_KEY ??
   "";
-const SESSION_KEY = "gamemaster.supabase.session";
+const SESSION_KEY = "gamemeter.supabase.session";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && publishableKey);
 

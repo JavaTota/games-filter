@@ -43,12 +43,12 @@ export default function NavBar() {
         py={3}
         gap={{ base: 2, md: 4 }}
       >
-        <AppLink to="/" ariaLabel="GameMaster home">
+        <AppLink to="/" ariaLabel="GameMeter home">
           <HStack gap={2} minW="fit-content">
             <Image
               src={logo}
               boxSize={{ base: "38px", md: "44px" }}
-              alt="GameMaster logo"
+              alt="GameMeter logo"
             />
             <Text
               fontWeight="900"
