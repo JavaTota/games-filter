@@ -56,7 +56,7 @@ export default function NavBar() {
               letterSpacing="-0.03em"
               display={{ base: "none", sm: "block" }}
             >
-              Game<span style={{ color: "#648EFF" }}>Filter</span>
+              Game<span style={{ color: "#648EFF" }}>Meter</span>
             </Text>
           </HStack>
         </AppLink>
